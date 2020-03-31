@@ -47,21 +47,16 @@ namespace madness{
 	create_nuclear_correlation_factor(World& world,
 			const Molecule& molecule,
 			const std::shared_ptr<PotentialManager> potentialmanager,
-			const std::string inputline) {
+			const std::pair<std::string,std::list<double> >& ncf) {
 
-		std::stringstream ss(lowercase(inputline));
-		std::string corrfac, factor;
-		ss >> corrfac >> factor;
+		std::string corrfac=ncf.first;
+		std::list<double> factors=ncf.second;
+		double a=0.0, b=0.0, c=0.0;
+		auto iter=factors.begin();
+		if (factors.size()>0) a=*(iter);
+		if (factors.size()>1) b=*(++iter);
+		if (factors.size()>2) c=*(++iter);
 
-		// read the length scale factor if there is one
-		double a=0.0;
-		if (factor.size()>0) {
-			std::stringstream fss(factor);
-			if (not (fss >> a)) {
-				if (world.rank()==0) print("could not read the length scale parameter a: ",a);
-				MADNESS_EXCEPTION("input error in the nuclear correlation factor",1);
-			}
-		}
 
 		typedef std::shared_ptr<NuclearCorrelationFactor> ncf_ptr;
 
@@ -73,6 +68,8 @@ namespace madness{
             return ncf_ptr(new GradientalGaussSlater(world, molecule,a));
         } else if (corrfac == "slater") {
 			return ncf_ptr(new Slater(world, molecule, a));
+        } else if (corrfac == "slaterapprox") {
+			return ncf_ptr(new SlaterApprox(world, molecule, a, b));
         } else if (corrfac == "poly4erfc") {
             return ncf_ptr(new poly4erfc(world, molecule, a));
 		} else if (corrfac == "polynomial4") {
@@ -99,21 +96,22 @@ namespace madness{
 			return ncf_ptr(new PseudoNuclearCorrelationFactor(world,
 					molecule,potentialmanager, a));
 		} else {
-			if (world.rank()==0) print(inputline);
+			if (world.rank()==0) print(ncf);
 			MADNESS_EXCEPTION("unknown nuclear correlation factor", 1);
 			return ncf_ptr();
 		}
 	}
 
-	std::shared_ptr<NuclearCorrelationFactor>
-	create_nuclear_correlation_factor(World& world,
-			const Molecule& molecule,
-			const std::shared_ptr<PotentialManager> pm,
-			const std::pair<std::string,double>& ncf) {
-		std::stringstream ss;
-		ss << ncf.first << " " << ncf.second;
-		return create_nuclear_correlation_factor(world,molecule,pm,ss.str());
-	}
+//	std::shared_ptr<NuclearCorrelationFactor>
+//	create_nuclear_correlation_factor(World& world,
+//			const Molecule& molecule,
+//			const std::shared_ptr<PotentialManager> pm,
+//			const std::pair<std::string,std::list<double> >& ncf) {
+//		std::stringstream ss;
+//		ss << ncf.first;
+//		for (auto d : ncf.second) ss << " " << d;
+//		return create_nuclear_correlation_factor(world,molecule,pm,ss.str());
+//	}
 
 
 }

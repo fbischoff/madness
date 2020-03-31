@@ -75,18 +75,6 @@ std::ostream &operator<<(std::ostream &s, const std::complex<T> &c) {
   return s;
 }
 
-/// Easy printing of pairs.
-
-/// \tparam T Type 1 of the pair.
-/// \tparam U Type 2 of the pair.
-/// \param[in,out] s The output stream.
-/// \param[in] p The pair.
-/// \return The output stream (for chaining).
-template <typename T, typename U>
-std::ostream &operator<<(std::ostream &s, const std::pair<T, U> &p) {
-  s << "(" << p.first << "," << p.second << ")";
-  return s;
-}
 
 /// Easy printing of lists.
 
@@ -105,6 +93,19 @@ std::ostream &operator<<(std::ostream &s, const std::list<T> &c) {
       s << ", ";
   };
   s << "]";
+  return s;
+}
+
+/// Easy printing of pairs.
+
+/// \tparam T Type 1 of the pair.
+/// \tparam U Type 2 of the pair.
+/// \param[in,out] s The output stream.
+/// \param[in] p The pair.
+/// \return The output stream (for chaining).
+template <typename T, typename U>
+std::ostream &operator<<(std::ostream &s, const std::pair<T, U> &p) {
+  s << "(" << p.first << "," << p.second << ")";
   return s;
 }
 

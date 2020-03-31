@@ -151,7 +151,7 @@ public:
 
 	void construct_nuclear_correlation_factor(const Molecule& molecule,
 			const std::shared_ptr<PotentialManager> pm,
-			const std::pair<std::string,double> ncf_parameter) {
+			const std::pair<std::string,std::list<double> > ncf_parameter) {
 
 	    // construct the nuclear correlation factor:
 	    if (not ncf) {
@@ -205,14 +205,15 @@ public:
 		}
 
 		void initialize_nemo_parameters() {
-			initialize<std::pair<std::string,double> > ("ncf",{"slater",2.0},"nuclear correlation factor");
+			initialize<std::pair<std::string,std::list<double> > > ("ncf",{"slater",{2.0}},"nuclear correlation factor");
+			initialize<std::pair<std::string,std::list<double> > > ("ncf_approx",{"",{}},"nuclear correlation factor");
 			initialize<bool> ("hessian",false,"compute the hessian matrix");
 			initialize<bool> ("read_cphf",false,"read the converged orbital response for nuclear displacements from file");
 			initialize<bool> ("restart_cphf",false,"read the guess orbital response for nuclear displacements from file");
 			initialize<bool> ("purify_hessian",false,"symmetrize the hessian matrix based on atomic charges");
 		}
 
-		std::pair<std::string,double> ncf() const {return get<std::pair<std::string,double> >("ncf");}
+		std::pair<std::string,std::list<double> > ncf() const {return get<std::pair<std::string,std::list<double> > >("ncf");}
 		bool hessian() const {return get<bool>("hessian");}
 
 	};

@@ -47,7 +47,7 @@ std::istream& operator>>(std::istream& is, std::vector<T,A>& v) {
 	// get the full line from opening to closing brackets [ .. ]
 	std::string word, line="";
 	while (is >> word) {
-		line+=word;
+		line+=word+" ";
 		if (word.find(']')!=std::string::npos) break;
 	}
 
@@ -58,9 +58,9 @@ std::istream& operator>>(std::istream& is, std::vector<T,A>& v) {
 	// stream the values into the container
 	std::stringstream sline(line);
 	T tmp;
-	while (sline >> word) {
-		std::stringstream sword(word);
-		sword >> tmp;
+	while (sline >> tmp) {
+//		std::stringstream sword(word);
+//		sword >> tmp;
 		check_for_inf(word,tmp);
 		v.push_back(tmp);
 	}
@@ -70,6 +70,40 @@ std::istream& operator>>(std::istream& is, std::vector<T,A>& v) {
 		MADNESS_EXCEPTION("IO error",1);
 	}
 
+	return is;
+}
+
+/// inverting the print method from print.h for std::vector
+/// TODO: move this where it belongs (into print.h ??)
+template <typename T, typename A=std::allocator<T> >
+std::istream& operator>>(std::istream& is, std::list<T,A>& v) {
+
+	// get the full line from opening to closing brackets [ .. ]
+	std::string word, line="";
+	while (is >> word) {
+		line+=word+" ";
+		if (word.find(']')!=std::string::npos) break;
+	}
+
+	// remove enclosing brackets and commas
+	auto find_c = [](char& c){ return ((c==',') or (c=='[') or (c==']')); };
+	std::replace_if (line.begin(), line.end(), find_c, ' '); // 0 2 0 4 0 6 0 8 0
+
+	// stream the values into the container
+	std::stringstream sline(line);
+	T tmp;
+	while (sline >> tmp) {
+//		std::stringstream sword(word);
+//		sword >> tmp;
+		check_for_inf(word,tmp);
+		v.push_back(tmp);
+	}
+	if (sline.bad() or (sline.fail() and not sline.eof())) {
+		madness::print("error while reading vector from istream: ");
+		madness::print(line,"\n");
+		MADNESS_EXCEPTION("IO error",1);
+	}
+	is.clear();
 	return is;
 }
 

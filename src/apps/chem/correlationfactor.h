@@ -87,7 +87,7 @@ namespace madness {
 class NuclearCorrelationFactor {
 public:
 	enum corrfactype {None, GradientalGaussSlater, GaussSlater, LinearSlater,
-	    Polynomial, Slater, poly4erfc, Two};
+	    Polynomial, Slater, SlaterApprox, poly4erfc, Two};
 	typedef std::shared_ptr< FunctionFunctorInterface<double,3> > functorT;
 
 	/// ctor
@@ -2023,6 +2023,99 @@ private:
 };
 
 
+
+/// A nuclear correlation factor class
+class SlaterApprox : public NuclearCorrelationFactor {
+public:
+	/// ctor
+
+	/// @param[in]	world	the world
+	/// @param[in]	mol molecule with the sites of the nuclei
+	SlaterApprox(World& world, const Molecule& mol, const double a, const double b)
+		: NuclearCorrelationFactor(world,mol), a_(a), b_(b) {
+
+		if (world.rank()==0) {
+			print("\nconstructed approximate nuclear correlation factor of the form");
+			print("  S_A = b/(a-1) exp(-a Z_A r_{1A}) + 1");
+			print("    a = ",a_);
+			print("    b = ",b_);
+			print("which is of SlaterApprox type\n");
+		}
+		if (a==0.0 or b==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+	}
+
+	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
+
+private:
+
+	/// the length scale parameter
+	double a_, b_;
+
+	/// first derivative of the correlation factor wrt (r-R_A)
+
+	/// \f[
+	///     Sr_div_S = \frac{1}{S(r)}\frac{\partial S(r)}{\partial r}
+	/// \f]
+	double Sr_div_S(const double& r, const double& Z) const {
+		return 0.0;
+	}
+
+
+    /// second derivative of the correlation factor wrt (r-R_A)
+
+    /// \f[
+    ///     result = \frac{1}{S(r)}\frac{\partial^2 S(r)}{\partial r^2}
+    /// \f]
+    double Srr_div_S(const double& r, const double& Z) const {
+		return 0.0;
+    }
+
+    /// third derivative of the correlation factor wrt (r-R_A)
+
+    /// \f[
+    ///    result = \frac{1}{S(r)}\frac{\partial^3 S(r)}{\partial r^3}
+    /// \f]
+    double Srrr_div_S(const double& r, const double& Z) const {
+		MADNESS_EXCEPTION("SlaterApprox not complete",1);
+		return 0.0;
+    }
+
+    /// the nuclear correlation factor
+    double S(const double& r, const double& Z) const {
+    	return 1.0+b_/(a_-1.0) * exp(-a_*Z*r);
+    }
+
+    /// radial part first derivative of the nuclear correlation factor
+    coord_3d Sp(const coord_3d& vr1A, const double& Z) const {
+		MADNESS_EXCEPTION("SlaterApprox not complete",1);
+		return coord_3d(0.0);
+    }
+
+    /// second derivative of the nuclear correlation factor
+    double Spp_div_S(const double& r, const double& Z) const {
+		return 0.0;
+    }
+
+
+    /// derivative of the U2 potential wrt X (scalar part)
+
+    /// with
+    /// \f[
+    ///   \rho = \left| \vec r- \vec R_A \right|
+    /// \f]
+    /// returns the term in the parenthesis without the the derivative of rho
+    /// \f[
+    /// \frac{\partial U_2}{\partial X_A} = \frac{\partial \rho}{\partial X}
+    ///           \left(-\frac{1}{2}\frac{S''' S - S'' S'}{S^2} + \frac{1}{\rho^2}\frac{S'}{S}
+    ///           - \frac{1}{\rho} \frac{S''S - S'^2}{S^2} + \frac{Z_A}{\rho^2}\right)
+    /// \f]
+    double U2X_spherical(const double& r, const double& Z, const double& rcut) const {
+		MADNESS_EXCEPTION("SlaterApprox not complete",1);
+		return 0.0;
+    }
+
+};
+
 std::shared_ptr<NuclearCorrelationFactor>
 create_nuclear_correlation_factor(World& world,
 		const Molecule& molecule,
@@ -2033,7 +2126,7 @@ std::shared_ptr<NuclearCorrelationFactor>
 create_nuclear_correlation_factor(World& world,
 		const Molecule& molecule,
 		const std::shared_ptr<PotentialManager> pm,
-		const std::pair<std::string,double>& ncf);
+		const std::pair<std::string,std::list<double> >& ncf);
 
 }
 

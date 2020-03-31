@@ -115,7 +115,9 @@ void QCCalculationParametersBase::read_internal(World& world, std::string& filec
 			success=try_setting_user_defined_value<std::vector<double> >(key,line1) or success;
 			success=try_setting_user_defined_value<std::vector<int> >(key,line1) or success;
 			success=try_setting_user_defined_value<std::vector<std::string> >(key,line1) or success;
+			success=try_setting_user_defined_value<std::list<double> >(key,line1) or success;
 			success=try_setting_user_defined_value<std::pair<std::string,double> >(key,line1) or success;
+			success=try_setting_user_defined_value<std::pair<std::string,std::list<double> > >(key,line1) or success;
 
 		} catch (std::runtime_error& e) {
 			std::string errmsg="found an error for key >> "+key+" << \n" +e.what();
