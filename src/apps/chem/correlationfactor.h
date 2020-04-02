@@ -167,6 +167,20 @@ public:
 		return R2;
 	}
 
+	virtual real_function_3d dRdb(const int iparam) const {
+	    drdb_functor r(this,iparam,1);
+		real_function_3d drdb=real_factory_3d(world).thresh(vtol)
+				.functor(r).truncate_on_project();
+		return drdb;
+	}
+
+	virtual real_function_3d dRdb_square(const int iparam) const {
+	    drdb_functor r(this,iparam,2);
+		real_function_3d drdb=real_factory_3d(world).thresh(vtol)
+				.functor(r).truncate_on_project();
+		return drdb;
+	}
+
     /// return the square of the nuclear correlation factor multiplied with
     /// the derivative of the nuclear potential for the specified atom
 
@@ -244,6 +258,17 @@ private:
 	/// @return 	the Laplacian of the nuclear correlation factor divided
 	///				by the correlation factor minus the nuclear potential
 	virtual double Spp_div_S(const double& r, const double& Z) const = 0;
+
+	/// the correlation factor S wrt a given atom
+
+	/// @param[in]	r	the distance of the req'd coord to the nucleus
+	/// @param[in]	Z	the nuclear charge
+	/// @return		the nuclear correlation factor S_A(r_1A)
+	virtual double dSdb(const double& r, const double& Z, const int param) const {
+		print("partial derivative of this ncf wrt to a parameter has not been implemented: ",this->type());
+		MADNESS_ASSERT(0);
+		return 0.0;
+	}
 
 public:
 
@@ -451,6 +476,30 @@ public:
 				return std::pow(result,double(exponent));
 			}
 
+		}
+		std::vector<coord_3d> special_points() const {
+			return ncf->molecule.get_all_coords_vec();
+		}
+	};
+
+	class drdb_functor : public FunctionFunctorInterface<double,3> {
+		const NuclearCorrelationFactor* ncf;
+		int iparam;
+		int exponent;
+	public:
+		drdb_functor(const NuclearCorrelationFactor* ncf, const int iparam, int e)
+			: ncf(ncf), iparam(iparam), exponent(e) {}
+		double operator()(const coord_3d& xyz) const {
+			double result=1.0;
+			for (size_t i=0; i<ncf->molecule.natom(); ++i) {
+				const Atom& atom=ncf->molecule.get_atom(i);
+				const coord_3d vr1A=xyz-atom.get_coords();
+				const double r=vr1A.normf();
+				result*=ncf->dSdb(r,atom.q,iparam);
+			}
+			if (exponent==1) return result;
+			else if (exponent==2) return result*result;
+			else return std::pow(result,double(exponent));
 		}
 		std::vector<coord_3d> special_points() const {
 			return ncf->molecule.get_all_coords_vec();
@@ -2083,6 +2132,16 @@ private:
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
     	return 1.0+b_/(a_-1.0) * exp(-a_*Z*r);
+    }
+
+    /// the nuclear correlation factor
+    double dSdb(const double& r, const double& Z, const int iparam) const {
+    	if (iparam==0) {
+    		return 1.0/(a_-1.0) * exp(-a_*Z*r);
+    	} else if (iparam==1) {
+    		MADNESS_EXCEPTION("no second parameter implemented in this NCF",1);
+    	}
+    	return 0.0;
     }
 
     /// radial part first derivative of the nuclear correlation factor

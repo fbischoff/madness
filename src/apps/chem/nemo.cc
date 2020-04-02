@@ -594,6 +594,9 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
 			molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
 	const real_function_3d R_square_approx=ncf_approx->square();
+	save(R_square_approx,"R_square_approx");
+	const real_function_3d dRdb_square_approx=ncf_approx->dRdb_square(0);
+	save(dRdb_square_approx,"dRdb_square_approx");
 
 	// compute the density and the coulomb potential
 	START_TIMER(world);
