@@ -167,15 +167,8 @@ public:
 		return R2;
 	}
 
-	virtual real_function_3d dRdb(const int iparam) const {
-	    drdb_functor r(this,iparam,1);
-		real_function_3d drdb=real_factory_3d(world).thresh(vtol)
-				.functor(r).truncate_on_project();
-		return drdb;
-	}
-
-	virtual real_function_3d dRdb_square(const int iparam) const {
-	    drdb_functor r(this,iparam,2);
+	virtual real_function_3d dRdb_div_R(const int iparam) const {
+	    dRdb_div_R_functor r(this,iparam,1);
 		real_function_3d drdb=real_factory_3d(world).thresh(vtol)
 				.functor(r).truncate_on_project();
 		return drdb;
@@ -482,20 +475,20 @@ public:
 		}
 	};
 
-	class drdb_functor : public FunctionFunctorInterface<double,3> {
+	class dRdb_div_R_functor : public FunctionFunctorInterface<double,3> {
 		const NuclearCorrelationFactor* ncf;
 		int iparam;
 		int exponent;
 	public:
-		drdb_functor(const NuclearCorrelationFactor* ncf, const int iparam, int e)
+		dRdb_div_R_functor(const NuclearCorrelationFactor* ncf, const int iparam, int e)
 			: ncf(ncf), iparam(iparam), exponent(e) {}
 		double operator()(const coord_3d& xyz) const {
-			double result=1.0;
+			double result=0.0;
 			for (size_t i=0; i<ncf->molecule.natom(); ++i) {
 				const Atom& atom=ncf->molecule.get_atom(i);
 				const coord_3d vr1A=xyz-atom.get_coords();
 				const double r=vr1A.normf();
-				result*=ncf->dSdb(r,atom.q,iparam);
+				result+=ncf->dSdb(r,atom.q,iparam)/ncf->S(r,atom.q);
 			}
 			if (exponent==1) return result;
 			else if (exponent==2) return result*result;
