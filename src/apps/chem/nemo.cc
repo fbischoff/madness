@@ -608,8 +608,10 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	const real_function_3d R_square_approx=ncf_approx->square();
 	save(R_square_approx,"R_square_approx");
 
-	const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R(0);
+	const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(0);
 	save(dRdb_div_R_approx,"dRdb_div_R_approx");
+
+	const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(0,0);
 
 	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
 	double n=double(molecule().total_nuclear_charge())-param.charge();

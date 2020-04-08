@@ -167,8 +167,15 @@ public:
 		return R2;
 	}
 
-	virtual real_function_3d dRdb_div_R(const int iparam) const {
-	    dRdb_div_R_functor r(this,iparam,1);
+	virtual real_function_3d dRdb_div_R2(const int iparam) const {
+	    dRdb_div_R2_functor r(this,iparam,1);
+		real_function_3d drdb=real_factory_3d(world).thresh(vtol)
+				.functor(r).truncate_on_project();
+		return drdb;
+	}
+
+	virtual real_function_3d d2Rdbdc_div_R2(const int iparam1, const int iparam2) const {
+		d2Rdbdc_div_R2_functor r(this,iparam1,iparam2);
 		real_function_3d drdb=real_factory_3d(world).thresh(vtol)
 				.functor(r).truncate_on_project();
 		return drdb;
@@ -252,12 +259,21 @@ private:
 	///				by the correlation factor minus the nuclear potential
 	virtual double Spp_div_S(const double& r, const double& Z) const = 0;
 
-	/// the correlation factor S wrt a given atom
+	/// the derivative of the correlation factor S wrt a given parameter b
 
 	/// @param[in]	r	the distance of the req'd coord to the nucleus
 	/// @param[in]	Z	the nuclear charge
-	/// @return		the nuclear correlation factor S_A(r_1A)
 	virtual double dSdb(const double& r, const double& Z, const int param) const {
+		print("partial derivative of this ncf wrt to a parameter has not been implemented: ",this->type());
+		MADNESS_ASSERT(0);
+		return 0.0;
+	}
+
+	/// the second derivative of the correlation factor S wrt parameters iparam1 and iparam2
+
+	/// @param[in]	r	the distance of the req'd coord to the nucleus
+	/// @param[in]	Z	the nuclear charge
+	virtual double d2Sdbdc(const double& r, const double& Z, const int param1, const int iparam2) const {
 		print("partial derivative of this ncf wrt to a parameter has not been implemented: ",this->type());
 		MADNESS_ASSERT(0);
 		return 0.0;
@@ -475,12 +491,12 @@ public:
 		}
 	};
 
-	class dRdb_div_R_functor : public FunctionFunctorInterface<double,3> {
+	class dRdb_div_R2_functor : public FunctionFunctorInterface<double,3> {
 		const NuclearCorrelationFactor* ncf;
 		int iparam;
 		int exponent;
 	public:
-		dRdb_div_R_functor(const NuclearCorrelationFactor* ncf, const int iparam, int e)
+		dRdb_div_R2_functor(const NuclearCorrelationFactor* ncf, const int iparam, int e)
 			: ncf(ncf), iparam(iparam), exponent(e) {}
 		double operator()(const coord_3d& xyz) const {
 			double result=0.0;
@@ -493,6 +509,31 @@ public:
 			if (exponent==1) return result;
 			else if (exponent==2) return result*result;
 			else return std::pow(result,double(exponent));
+		}
+		std::vector<coord_3d> special_points() const {
+			return ncf->molecule.get_all_coords_vec();
+		}
+	};
+
+
+	class d2Rdbdc_div_R2_functor : public FunctionFunctorInterface<double,3> {
+		const NuclearCorrelationFactor* ncf;
+		int iparam1, iparam2;
+	public:
+		d2Rdbdc_div_R2_functor(const NuclearCorrelationFactor* ncf, const int iparam1,
+				const int iparam2)
+			: ncf(ncf), iparam1(iparam1), iparam2(iparam2) {}
+		double operator()(const coord_3d& xyz) const {
+			double result=0.0;
+			for (size_t i=0; i<ncf->molecule.natom(); ++i) {
+				const Atom& atom=ncf->molecule.get_atom(i);
+				const coord_3d vr1A=xyz-atom.get_coords();
+				const double r=vr1A.normf();
+				result+=ncf->d2Sdbdc(r,atom.q,iparam1,iparam2)/ncf->S(r,atom.q)
+						+ ncf->dSdb(r,atom.q,iparam1)/ncf->S(r,atom.q)
+						  * ncf->dSdb(r,atom.q,iparam2)/ncf->S(r,atom.q);
+			}
+			return result;
 		}
 		std::vector<coord_3d> special_points() const {
 			return ncf->molecule.get_all_coords_vec();
@@ -2136,6 +2177,11 @@ private:
     	}
     	return 0.0;
     }
+
+    double d2Sdbdc(const double& r, const double& z, const int iparam1, const int iparam2) const {
+    	return 0.0;
+    }
+
 
     /// radial part first derivative of the nuclear correlation factor
     coord_3d Sp(const coord_3d& vr1A, const double& Z) const {
