@@ -590,9 +590,20 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	psi = mul(world, R, nemo);
 	truncate(world, psi);
 	END_TIMER(world, "reconstruct psi");
+	
+	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
+	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
+	print("a,b",a,b);
+
+// error measure 1
+  for(int i=0; i<50; i++){
+	std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b});
+
+	//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+	//		molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
 
 	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-			molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+				molecule(), calc->potentialmanager, ncf_input);
 
 	const real_function_3d R_square_approx=ncf_approx->square();
 	save(R_square_approx,"R_square_approx");
@@ -604,6 +615,44 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	double n=double(molecule().total_nuclear_charge())-param.charge();
 	double f=(nemodensity*R_square_approx).trace()-n;
 	double fprime=2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
+	print("error measure", f, " b ", b ); 	
+	b=b-f/fprime;
+	double econv = calc -> param.econv();
+	if (fabs(f) < econv ){
+	   break;
+	}
+}
+
+//error measure 2
+/*  for(int i=0; i<50; i++){
+        std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b});
+
+        //std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+        //              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+
+        std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+                                molecule(), calc->potentialmanager, ncf_input);
+
+        const real_function_3d R_square_approx=ncf_approx->square();
+        save(R_square_approx,"R_square_approx");
+
+        const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R(0);
+        save(dRdb_div_R_approx,"dRdb_div_R_approx");
+
+        real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+        double n=double(molecule().total_nuclear_charge())-param.charge();
+        double f=(nemodensity*R_square_approx).trace()-n;i
+        double fprime=2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
+        double fprimeprime=2.0*nemodensity(2.0*SUMME1+R_square_approx*SUMME2).trace()
+	print("error measure", f, " b ", b );
+        b=b-f/fprimeprime;
+        double econv = calc -> param.econv();
+        if (fabs(f) < econv ){
+           break;
+        }
+}
+
+*/
 
 	// compute the density and the coulomb potential
 	START_TIMER(world);

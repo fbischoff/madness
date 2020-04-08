@@ -2078,7 +2078,7 @@ public:
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = b/(a-1) exp(-a Z_A r_{1A}) + 1");
+			print("  S_A = b/(a-1) exp(-a Z_A r_{1A} r_{1A}) + 1");
 			print("    a = ",a_);
 			print("    b = ",b_);
 			print("which is of SlaterApprox type\n");
@@ -2124,13 +2124,13 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0+b_/(a_-1.0) * exp(-a_*Z*r);
+    	return 1.0+b_/(a_-1.0) * exp(-a_*Z*r*r);
     }
 
     /// the nuclear correlation factor
     double dSdb(const double& r, const double& Z, const int iparam) const {
     	if (iparam==0) {
-    		return 1.0/(a_-1.0) * exp(-a_*Z*r);
+    		return 1.0/(a_-1.0) * exp(-a_*Z*r*r);
     	} else if (iparam==1) {
     		MADNESS_EXCEPTION("no second parameter implemented in this NCF",1);
     	}
