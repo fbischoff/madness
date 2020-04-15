@@ -590,14 +590,15 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	psi = mul(world, R, nemo);
 	truncate(world, psi);
 	END_TIMER(world, "reconstruct psi");
-	
+/*
+// error measure 1
+	//parameter a and b
 	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
 	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
 	print("a,b",a,b);
 
-// error measure 1
   for(int i=0; i<50; i++){
-	std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b});
+	std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b} );
 
 	//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
 	//		molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
@@ -617,17 +618,25 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	double n=double(molecule().total_nuclear_charge())-param.charge();
 	double f=(nemodensity*R_square_approx).trace()-n;
 	double fprime=2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
-	print("error measure", f, " b ", b ); 	
-	b=b-f/fprime;
+	print("error measure 1", f, " b ", b ); 	
+	b = b-f/fprime;
 	double econv = calc -> param.econv();
 	if (fabs(f) < econv ){
 	   break;
 	}
 }
+*/
 
-//error measure 2
-/*  for(int i=0; i<50; i++){
-        std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b});
+//error measure 2 - one parameter
+
+ //parameter a and b
+        double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
+        double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
+        print("a,b",a,b);
+
+  for(int i=0; i<50; i++){
+
+	 std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b} );
 
         //std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
         //              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
@@ -638,22 +647,81 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         const real_function_3d R_square_approx=ncf_approx->square();
         save(R_square_approx,"R_square_approx");
 
-        const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R(0);
+        const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(0);
         save(dRdb_div_R_approx,"dRdb_div_R_approx");
+        
+        const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(0,0);
 
         real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
         double n=double(molecule().total_nuclear_charge())-param.charge();
-        double f=(nemodensity*R_square_approx).trace()-n;i
-        double fprime=2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
-        double fprimeprime=2.0*nemodensity(2.0*SUMME1+R_square_approx*SUMME2).trace()
-	print("error measure", f, " b ", b );
-        b=b-f/fprimeprime;
+        double f=(nemodensity*R_square_approx).trace()-n;
+        
+        double gradient = 4.0*(nemodensity*nemodensity*R_square_approx*(R_square_approx-R_square)*dRdb_div_R_approx).trace();
+
+        double hesse = 4.0*(nemodensity*nemodensity*R_square_approx*(R_square_approx-R_square)*((2.0*dRdb_div_R_approx*dRdb_div_R_approx+2.0*dRdb_div_R_approx*dRdb_div_R_approx*R_square_approx)+d2Rdbdc_div_R_approx)).trace();
+        
+        print("error measure 2 ", gradient, " hesse ",hesse, " b ", b );
+        b=b -  gradient/hesse;
+        
         double econv = calc -> param.econv();
-        if (fabs(f) < econv ){
+  	if (fabs(gradient) < econv ){
            break;
         }
 }
+                                             
+/*
+//error measure 2
 
+  // number of parameter listed minus the fixed Slater length parameter a. 
+        std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
+        int nparam = parameterlist.size()-1;
+
+        double a = *parameterlist.begin();
+        tensorT b = list_to_tensor(parameterlist);
+
+  for(int i=0; i<50; i++){
+        std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", parameterlist);
+
+        //std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+        //              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+
+        std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+                                molecule(), calc->potentialmanager, ncf_input);
+
+        const real_function_3d R_square_approx=ncf_approx->square();
+        save(R_square_approx,"R_square_approx");
+
+        const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(0);
+        save(dRdb_div_R_approx,"dRdb_div_R_approx");
+	
+	tensorT Hesse (nparam, nparam);
+	tensorT gradient (nparam);
+
+
+        const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(0,0);
+
+        real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+        double n=double(molecule().total_nuclear_charge())-param.charge();
+        double f=(nemodensity*R_square_approx).trace()-n;
+        
+	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
+	gradient(iparam1)=2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
+        }
+
+	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
+		for (int iparam2 = 0; iparam2 < nparam; ++iparam2){
+		Hesse (iparam1, iparam2)= 2.0*((nemodensity*2.0*R_square_approx*dRdb_div_R_approx)+(R_square_approx*d2Rdbdc_div_R_approx)).trace();
+		}
+	}
+	print("error measure 2", gradient(nparam), " b ", b );
+        b=b- inner(  inverse(Hesse), gradient);
+        parameterlist = tensor_to_list(a,b);
+	double econv = calc -> param.econv();
+	double norm = gradient.normf();
+	if ( norm < econv ){
+           break;
+        }
+}
 */
 
 	// compute the density and the coulomb potential

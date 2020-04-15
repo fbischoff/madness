@@ -600,6 +600,26 @@ protected:
     template<typename T, size_t NDIM>
     void load_function(std::vector<Function<T,NDIM> >& f, const std::string name) const;
 
+    //list to tensor and tensor to list for list of parameters in ncf_approx
+	tensorT list_to_tensor(std::list<double> list) const {
+        list.pop_front();
+        tensorT t(list.size());
+        int i=0;
+        for (auto iter=list.begin(); iter!=list.end(); ++iter) {
+                t[i]=*iter;
+        }
+        return t;
+   }
+
+   std::list<double> tensor_to_list(const double a, const tensorT t) const {
+        std::list<double> l;
+        l.push_back(a);
+        for (int i=0; i<t.size(); ++i) {
+                l.push_back(t[i]);
+        }
+        return l;
+   }
+
 };
 
 /// rotate the KAIN subspace (cf. SCF.cc)
@@ -644,7 +664,7 @@ void Nemo::load_function(std::vector<Function<T,NDIM> >& f, const std::string na
     f.resize(fsize);
     for (std::size_t i=0; i<fsize; ++i) ar & f[i];
 }
-
+ 
 }
 
 #endif /* NEMO_H_ */
