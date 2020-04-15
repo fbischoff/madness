@@ -658,8 +658,9 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         
         double gradient = 4.0*(nemodensity*nemodensity*R_square_approx*(R_square_approx-R_square)*dRdb_div_R_approx).trace();
 
-        double hesse = 4.0*(nemodensity*nemodensity*R_square_approx*(R_square_approx-R_square)*((2.0*dRdb_div_R_approx*dRdb_div_R_approx+2.0*dRdb_div_R_approx*dRdb_div_R_approx*R_square_approx)+d2Rdbdc_div_R_approx)).trace();
-        
+        double hesse = 4.0*(nemodensity*nemodensity*(2*R_square_approx*dRdb_div_R_approx*dRdb_div_R_approx*(2*R_square_approx-R_square)+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx)).trace();
+
+ 
         print("error measure 2 ", gradient, " hesse ",hesse, " b ", b );
         b=b -  gradient/hesse;
         
