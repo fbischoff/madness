@@ -1,4 +1,4 @@
-/*
+  /*
   This file is part of MADNESS.
 
   Copyright (C) 2007,2010 Oak Ridge National Laboratory
@@ -529,9 +529,9 @@ public:
 				const Atom& atom=ncf->molecule.get_atom(i);
 				const coord_3d vr1A=xyz-atom.get_coords();
 				const double r=vr1A.normf();
-				result+=ncf->d2Sdbdc(r,atom.q,iparam1,iparam2)/ncf->S(r,atom.q)
-						+ ncf->dSdb(r,atom.q,iparam1)/ncf->S(r,atom.q)
-						  * ncf->dSdb(r,atom.q,iparam2)/ncf->S(r,atom.q);
+				result+=ncf->d2Sdbdc(r,atom.q,iparam1,iparam2)/(ncf->S(r,atom.q))
+						- ((ncf->dSdb(r,atom.q,iparam1))/ncf->S(r,atom.q)
+						  * (ncf->dSdb(r,atom.q,iparam2))/ncf->S(r,atom.q));
 			}
 			return result;
 		}
@@ -2114,17 +2114,18 @@ public:
 
 	/// @param[in]	world	the world
 	/// @param[in]	mol molecule with the sites of the nuclei
-	SlaterApprox(World& world, const Molecule& mol, const double a, const double b)
-		: NuclearCorrelationFactor(world,mol), a_(a), b_(b) {
+	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c)
+		: NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c) {
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = b/(a-1) exp(-a Z_A r_{1A} r_{1A}) + 1");
+			print("  S_A = b/(a-1) exp(-(a+c) Z_A r_{1A} r_{1A}) + 1");
 			print("    a = ",a_);
 			print("    b = ",b_);
+			print("    c = ",c_);
 			print("which is of SlaterApprox type\n");
 		}
-		if (a==0.0 or b==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
 	}
 
 	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
@@ -2132,7 +2133,7 @@ public:
 private:
 
 	/// the length scale parameter
-	double a_, b_;
+	double a_, b_, c_;
 
 	/// first derivative of the correlation factor wrt (r-R_A)
 
@@ -2165,21 +2166,32 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0+b_/(a_-1.0) * exp(-a_*Z*r*r);
+    	return 1.0+b_/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
     }
 
     /// the nuclear correlation factor
-    double dSdb(const double& r, const double& Z, const int iparam) const {
-    	if (iparam==0) {
-    		return 1.0/(a_-1.0) * exp(-a_*Z*r*r);
-    	} else if (iparam==1) {
-    		MADNESS_EXCEPTION("no second parameter implemented in this NCF",1);
+    double dSdb(const double& r, const double& Z, const int iparam1) const {
+    	if (iparam1==0) {
+    		return 1.0/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
     	}
-    	return 0.0;
+    	else if (iparam1==1) {
+    		return (-b_*Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	}
     }
 
-    double d2Sdbdc(const double& r, const double& z, const int iparam1, const int iparam2) const {
-    	return 0.0;
+    double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
+    	if ((iparam1 == 0) && (iparam2 == 1)) {
+    	    		return (-Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	    	}
+    	else if ((iparam1 == 1) && (iparam2 == 0)) {
+    	    	    return (-Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	    	}
+    	else if ((iparam1 == 1) && (iparam2 == 1)) {
+    	    		return (b_*Z*r*r*Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	    	}
+    	else if ((iparam1 == 0) && (iparam2 == 0)){
+    	    		return 0.0;
+    			}
     }
 
 
