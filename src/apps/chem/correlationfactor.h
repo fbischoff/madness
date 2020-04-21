@@ -2119,10 +2119,10 @@ public:
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = b/(a-1) exp(-(a+c) Z_A r_{1A} r_{1A}) + 1");
+			print("  S_A = 1 + b_1/(a-1) exp(-a Z_A Z_A r_{1A} r_{1A}) + b_2/(a-1) exp(-2 a Z_A Z_A r_{1A} r_{1A}) ");
 			print("    a = ",a_);
-			print("    b = ",b_);
-			print("    c = ",c_);
+			print("    b_2 = ",b_);
+			print("    b_1 = ",c_);
 			print("which is of SlaterApprox type\n");
 		}
 		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
@@ -2166,28 +2166,28 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0+b_/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	return 1.0 + b_/(a_-1.0) * exp(-a_*Z*Z*r*r) + c_/(a_-1.0) * exp(-2*a_*Z*Z*r*r);
     }
 
     /// the nuclear correlation factor
     double dSdb(const double& r, const double& Z, const int iparam1) const {
     	if (iparam1==0) {
-    		return 1.0/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    		return 1.0/(a_-1.0) * exp(-a_*Z*Z*r*r);
     	}
     	else if (iparam1==1) {
-    		return (-b_*Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    		return 1.0/(a_-1.0) * exp(-2*a_*Z*Z*r*r);
     	}
     }
 
     double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
     	if ((iparam1 == 0) && (iparam2 == 1)) {
-    	    		return (-Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	    		return 0.0;
     	    	}
     	else if ((iparam1 == 1) && (iparam2 == 0)) {
-    	    	    return (-Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	    	    return 0.0;
     	    	}
     	else if ((iparam1 == 1) && (iparam2 == 1)) {
-    	    		return (b_*Z*r*r*Z*r*r)/(a_-1.0) * exp(-(a_+c_)*Z*r*r);
+    	    		return 0.0;
     	    	}
     	else if ((iparam1 == 0) && (iparam2 == 0)){
     	    		return 0.0;

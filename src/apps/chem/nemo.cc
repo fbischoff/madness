@@ -677,7 +677,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
   // number of parameter listed minus the fixed Slater length parameter a. 
         std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
-        int nparam = parameterlist.size()-2;
+        int nparam = parameterlist.size()-1;
 
 
         double a = *parameterlist.begin();
@@ -720,8 +720,10 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 			const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(iparam1, iparam2);
 
-			hesse (iparam1, iparam2)= 4.0*(nemodensity*nemodensity*(2*R_square_approx*dRdb_div_R_approx1*dRdb_div_R_approx2*(2*R_square_approx-R_square)
-																		+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx)).trace();
+			hesse (iparam1, iparam2)= (nemodensity*nemodensity*(16*R_square_approx*R_square_approx*dRdb_div_R_approx1*dRdb_div_R_approx2
+																-8*R_square*R_square_approx*dRdb_div_R_approx1*dRdb_div_R_approx2
+																+4*R_square_approx*R_square_approx*d2Rdbdc_div_R_approx
+																-4*R_square_approx*R_square*d2Rdbdc_div_R_approx)).trace();
 		}
 	}
 	print("error measure 2", gradient.normf());
