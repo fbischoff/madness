@@ -683,83 +683,84 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         double a = *parameterlist.begin();
         tensorT b = list_to_tensor(parameterlist);
 
-  for(int i=0; i<50; i++){
-        std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", parameterlist);
+        for(int i=0; i<50; i++){
+        	std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", parameterlist);
 
-        //std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-        //              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+        	//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+        	//              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
 
-        std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-                                molecule(), calc->potentialmanager, ncf_input);
+        	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
+        			molecule(), calc->potentialmanager, ncf_input);
 
-        const real_function_3d R_square_approx=ncf_approx->square();
-        save(R_square_approx,"R_square_approx");
-
-
-	
-        tensorT hesse (nparam, nparam);
-        tensorT gradient (nparam);
+        	const real_function_3d R_square_approx=ncf_approx->square();
+        	save(R_square_approx,"R_square_approx");
 
 
-        real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-        double n=double(molecule().total_nuclear_charge())-param.charge();
-        double f=(nemodensity*R_square_approx).trace()-n;
-        double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
-        
-   /*     double rho=nemodensity * R_square;
-        double rho_approx=nemodensity * R_square_approx;
-        real_function_3d diffdens = rho - rho_approx;
-        double error2 = inner(diffdens,diffdens);
-        inner(a,b)=<a|b>*/
 
-	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
+        	tensorT hesse (nparam, nparam);
+        	tensorT gradient (nparam);
 
-			const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(iparam1);
 
-			gradient(iparam1) = 4.0*(nemodensity*nemodensity*R_square_approx*(R_square_approx-R_square)*dRdb_div_R_approx).trace();
+        	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+        	double n=double(molecule().total_nuclear_charge())-param.charge();
+        	double f=(nemodensity*R_square_approx).trace()-n;
+        	double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
+
+        	std::vector<real_function_3d> dRdb_div_R_approx(nparam);
+        	dRdb_div_R_approx[0]=ncf_approx->dRdb_div_R2(0);
+        	dRdb_div_R_approx[1]=ncf_approx->dRdb_div_R2(1);
+
+        	real_function_3d nemodensity_square = nemodensity*nemodensity;
+        	real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
+        	real_function_3d R_4_approx = R_square_approx*R_square_approx;
+
+        	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
+
+
+        		gradient(iparam1) = 4.0*(nemodensity*nemodensity*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[iparam1]).trace();
+        	}
+
+        	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
+        		for (int iparam2 = 0; iparam2 < nparam; ++iparam2){
+
+        			const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(iparam1, iparam2);
+
+        			/*hesse (iparam1, iparam2)= (nemodensity_square*(16*R_square_approx*R_square_approx*dRdb_div_R_approx[iparam1]*dRdb_div_R_approx[iparam2]
+        					-8*R_square*R_square_approx*dRdb_div_R_approx[iparam1]*dRdb_div_R_approx[iparam2]
+							+4*R_square_approx*R_square_approx*d2Rdbdc_div_R_approx
+							-4*R_square_approx*R_square*d2Rdbdc_div_R_approx)).trace();*/
+
+        			hesse (iparam1, iparam2)= 4*(nemodensity_square*(2*dRdb_div_R_approx[iparam1]*dRdb_div_R_approx[iparam2]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
+        										+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx)).trace();
+        		}
+        	}
+        	print("error measure 1", f);
+
+        	print("error measure 2", g);
+
+        	print("gradient norm", gradient.normf());
+
+        	print("gradient ", gradient);
+
+        	print("hessian ", hesse);
+
+        	b=b- inner(  inverse(hesse), gradient);
+
+        	double norm_b =  b.normf();
+        	if (fabs(norm_b) > 1500){
+        		break;
+        	}
+
+
+        	parameterlist = tensor_to_list(a,b);
+
+        	double econv = calc -> param.econv();
+        	double norm = gradient.normf();
+        	if ( fabs(norm) < econv ){
+        		break;
+        	}
+
         }
-
-	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
-		for (int iparam2 = 0; iparam2 < nparam; ++iparam2){
-
-			const real_function_3d dRdb_div_R_approx1=ncf_approx->dRdb_div_R2(iparam1);
-			const real_function_3d dRdb_div_R_approx2=ncf_approx->dRdb_div_R2(iparam2);
-
-			const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(iparam1, iparam2);
-
-			hesse (iparam1, iparam2)= (nemodensity*nemodensity*(16*R_square_approx*R_square_approx*dRdb_div_R_approx1*dRdb_div_R_approx2
-																-8*R_square*R_square_approx*dRdb_div_R_approx1*dRdb_div_R_approx2
-																+4*R_square_approx*R_square_approx*d2Rdbdc_div_R_approx
-																-4*R_square_approx*R_square*d2Rdbdc_div_R_approx)).trace();
-		}
-	}
-	print("error measure 1", f);
-
-	print("error measure 2", g);
-
-	print("gradient norm", gradient.normf());
-
-	print("gradient ", gradient);
-
-	print("hessian ", hesse);
-
-    b=b- inner(  inverse(hesse), gradient);
-
-    double norm_b =  b.normf();
-    if (fabs(norm_b) > 1500){
-    		break;
-    	}
-
-
-    parameterlist = tensor_to_list(a,b);
-
-	double econv = calc -> param.econv();
-	double norm = gradient.normf();
-	if ( fabs(norm) < econv ){
-           break;
-        }
-
-}
 
 
 	// compute the density and the coulomb potential
