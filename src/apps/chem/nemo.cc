@@ -727,15 +727,27 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		}
 	}
 	print("error measure 2", gradient.normf());
+
 	print("gradient ", gradient);
+
 	print("hessian ", hesse);
-        b=b- inner(  inverse(hesse), gradient);
-        parameterlist = tensor_to_list(a,b);
+
+    b=b- inner(  inverse(hesse), gradient);
+
+    double norm_b =  b.normf();
+    if (fabs(norm_b) > 1500){
+    		break;
+    	}
+
+
+    parameterlist = tensor_to_list(a,b);
+
 	double econv = calc -> param.econv();
 	double norm = gradient.normf();
 	if ( fabs(norm) < econv ){
            break;
         }
+
 }
 
 
