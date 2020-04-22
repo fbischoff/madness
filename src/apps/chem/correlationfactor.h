@@ -2121,8 +2121,8 @@ public:
 			print("\nconstructed approximate nuclear correlation factor of the form");
 			print("  S_A = 1 + b_1/(a-1) exp(-a Z_A Z_A r_{1A} r_{1A}) + b_2/(a-1) exp(-2 a Z_A Z_A r_{1A} r_{1A}) ");
 			print("    a = ",a_);
-			print("    b_2 = ",b_);
-			print("    b_1 = ",c_);
+			print("    b_1 = ",b_);
+			print("    b_2 = ",c_);
 			print("which is of SlaterApprox type\n");
 		}
 		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);

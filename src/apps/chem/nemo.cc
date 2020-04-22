@@ -704,7 +704,14 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
         double n=double(molecule().total_nuclear_charge())-param.charge();
         double f=(nemodensity*R_square_approx).trace()-n;
+        double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
         
+   /*     double rho=nemodensity * R_square;
+        double rho_approx=nemodensity * R_square_approx;
+        real_function_3d diffdens = rho - rho_approx;
+        double error2 = inner(diffdens,diffdens);
+        inner(a,b)=<a|b>*/
+
 	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
 
 			const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(iparam1);
@@ -726,7 +733,11 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 																-4*R_square_approx*R_square*d2Rdbdc_div_R_approx)).trace();
 		}
 	}
-	print("error measure 2", gradient.normf());
+	print("error measure 1", f);
+
+	print("error measure 2", g);
+
+	print("gradient norm", gradient.normf());
 
 	print("gradient ", gradient);
 
