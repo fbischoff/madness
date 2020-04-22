@@ -717,18 +717,13 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
 
 
-        		gradient(iparam1) = 4.0*(nemodensity*nemodensity*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[iparam1]).trace();
+        		gradient(iparam1) = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[iparam1]).trace();
         	}
 
         	for (int iparam1 = 0; iparam1 < nparam; ++iparam1){
         		for (int iparam2 = 0; iparam2 < nparam; ++iparam2){
 
         			const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(iparam1, iparam2);
-
-        			/*hesse (iparam1, iparam2)= (nemodensity_square*(16*R_square_approx*R_square_approx*dRdb_div_R_approx[iparam1]*dRdb_div_R_approx[iparam2]
-        					-8*R_square*R_square_approx*dRdb_div_R_approx[iparam1]*dRdb_div_R_approx[iparam2]
-							+4*R_square_approx*R_square_approx*d2Rdbdc_div_R_approx
-							-4*R_square_approx*R_square*d2Rdbdc_div_R_approx)).trace();*/
 
         			hesse (iparam1, iparam2)= 4*(nemodensity_square*(2*dRdb_div_R_approx[iparam1]*dRdb_div_R_approx[iparam2]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
         										+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx)).trace();
