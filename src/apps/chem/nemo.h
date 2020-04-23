@@ -207,6 +207,7 @@ public:
 		void initialize_nemo_parameters() {
 			initialize<std::pair<std::string,std::list<double> > > ("ncf",{"slater",{2.0}},"nuclear correlation factor");
 			initialize<std::pair<std::string,std::list<double> > > ("ncf_approx",{"",{}},"nuclear correlation factor");
+			initialize<int> ("error_measure",1,"error measure for the approximate NCF");
 			initialize<bool> ("hessian",false,"compute the hessian matrix");
 			initialize<bool> ("read_cphf",false,"read the converged orbital response for nuclear displacements from file");
 			initialize<bool> ("restart_cphf",false,"read the guess orbital response for nuclear displacements from file");
@@ -215,6 +216,7 @@ public:
 
 		std::pair<std::string,std::list<double> > ncf() const {return get<std::pair<std::string,std::list<double> > >("ncf");}
 		bool hessian() const {return get<bool>("hessian");}
+		int error_measure() const {return get<int>("error_measure");}
 
 	};
 

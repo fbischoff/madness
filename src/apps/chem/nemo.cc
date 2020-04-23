@@ -675,6 +675,8 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 //error measure 2
 
+	int error_measure=this->param.error_measure();
+
   // number of parameter listed minus the fixed Slater length parameter a. 
         std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
         int nparam = parameterlist.size()-1;
