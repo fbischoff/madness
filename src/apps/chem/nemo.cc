@@ -590,7 +590,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	psi = mul(world, R, nemo);
 	truncate(world, psi);
 	END_TIMER(world, "reconstruct psi");
-/*
+
 // error measure 1
 	//parameter a and b
 	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
@@ -625,7 +625,6 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	   break;
 	}
 }
-*/
 /*
 //error measure 2 - one parameter
 
@@ -671,7 +670,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 }
 
 // error measure 1+2
-*/
+
 
 //error measure 2
 
@@ -758,7 +757,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         	}
 
         }
-
+*/
 
 	// compute the density and the coulomb potential
 	START_TIMER(world);
