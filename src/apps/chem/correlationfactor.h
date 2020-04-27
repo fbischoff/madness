@@ -2114,17 +2114,18 @@ public:
 
 	/// @param[in]	world	the world
 	/// @param[in]	mol molecule with the sites of the nuclei
-	SlaterApprox(World& world, const Molecule& mol, const double a, const double b)
-		: NuclearCorrelationFactor(world,mol), a_(a), b_(b) {
+	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c)
+		: NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c) {
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = 1 + b_1/(a-1) exp(-4 a Z_A Z_A r_{1A} r_{1A})");
+			print("  S_A = 1 + b_1/(a-1) exp(-0.5 a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(-4 a Z_A Z_A r_{1A} r_{1A})");
 			print("    a = ",a_);
 			print("    b_1 = ",b_);
+			print("    b_2 = ",c_);
 			print("which is of SlaterApprox type\n");
 		}
-		if (a==0.0 or b==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
 	}
 
 	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
@@ -2132,7 +2133,7 @@ public:
 private:
 
 	/// the length scale parameter
-	double a_, b_;
+	double a_, b_, c_;
 
 	/// first derivative of the correlation factor wrt (r-R_A)
 
@@ -2165,22 +2166,22 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0 + b_/(a_-1.0) * exp(-4*a_*Z*Z*r*r); 
+    	return 1.0 + b_/(a_-1.0) * exp(-0.5*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-4*a_*Z*Z*r*r);
 	}
 
     /// the nuclear correlation factor
     double dSdb(const double& r, const double& Z, const int iparam1) const {
     	if (iparam1==0) {
+    		return 1.0/(a_-1.0) * exp(-0.5*a_*Z*Z*r*r);
+    	}
+    	else if (iparam1==1) {
     		return 1.0/(a_-1.0) * exp(-4*a_*Z*Z*r*r);
     	}
-    //	else if (iparam1==1) {
-    //		return 1.0/(a_-1.0) * exp(-2*a_*Z*Z*r*r);
-    //	}
     }
 
     double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
-				return 0.0;	    
-		 /*	if ((iparam1 == 0) && (iparam2 == 1)) {
+
+		 if ((iparam1 == 0) && (iparam2 == 1)) {
     	    		return 0.0;
     	    	}
     	else if ((iparam1 == 1) && (iparam2 == 0)) {
@@ -2191,7 +2192,7 @@ private:
     	    	}
     	else if ((iparam1 == 0) && (iparam2 == 0)){
     	    		return 0.0;
-    			}*/
+    			}
     }
 
 
