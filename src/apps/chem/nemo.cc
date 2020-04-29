@@ -876,7 +876,12 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 		print("f(b,c) = ", f);
 
-		print("g'(b,c)+lambda f'(b,c) = ", gprime_c+lambda*fprime_c );
+		print("dgdb(b,c) = ",  gprime_b);
+		print("dgdc(b,c) = ",  gprime_c);
+
+		print("norm(g'(b,c)) = ", sqrt(gprime_c*gprime_c+gprime_b*gprime_b));
+
+		print("dgdc(b,c)+lambda f'(b,c) = ", gprime_c+lambda*fprime_c );
 
 		double econv = calc -> param.econv();
 		double end = f+gprime_c+lambda*fprime_c;
