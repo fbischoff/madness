@@ -827,12 +827,12 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
 	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
-	double c=++(b);
+	double c=*(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin())));
 	int nparam = 2;
 
 	print("a = ", a);
-	print("b = ", b);
-	print("c = ", c);
+	print("b_1 = ", b);
+	print("b_2 = ", c);
 
 	for(int i=0; i<50; i++){
 		std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b,c});
@@ -846,7 +846,9 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		const real_function_3d R_square_approx=ncf_approx->square();
 		save(R_square_approx,"R_square_approx");
 
-		const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(1,1);
+		std::vector<real_function_3d> d2Rdbdc_div_R_approx(nparam);
+		d2Rdbdc_div_R_approx[0]=ncf_approx->d2Rdbdc_div_R2(0,0);
+		d2Rdbdc_div_R_approx[1]=ncf_approx->d2Rdbdc_div_R2(1,1);
 
 		std::vector<real_function_3d> dRdb_div_R_approx(nparam);
 		dRdb_div_R_approx[0]=ncf_approx->dRdb_div_R2(0);
@@ -861,27 +863,40 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		double n=double(molecule().total_nuclear_charge())-param.charge();
 		double f=(nemodensity*R_square_approx).trace()-n;
 		double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
+
+		//first derivative of f
 		double fprime_b = 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[0]).trace();
 		double fprime_c = 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[1]).trace();
-		double fprimeprime_cc = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]+R_square_approx*d2Rdbdc_div_R_approx)).trace();
+
+		//second derivative of f
+		double fprimeprime_bb = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[0]*dRdb_div_R_approx[0]+R_square_approx*d2Rdbdc_div_R_approx[0])).trace();
+		double fprimeprime_cc = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]+R_square_approx*d2Rdbdc_div_R_approx[1])).trace();
+
+		//first derivative of g
 		double gprime_b = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[0]).trace() ;
 		double gprime_c = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[1]).trace();
-		double gprimeprime_cc = 4*(nemodensity_square*(2*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
-				+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx)).trace();
 
-		double lambda = -(gprime_b/fprime_b);
+		//second derivative of g
+		double gprimeprime_bb = 4*(nemodensity_square*(2*dRdb_div_R_approx[0]*dRdb_div_R_approx[0]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
+				+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx[0])).trace();
+		double gprimeprime_cc = 4*(nemodensity_square*(2*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
+				+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx[1])).trace();
+		double lambda;
+
+		lambda = lambda -(gprime_b+lambda*fprime_b)/(gprimeprime_bb+lambda*fprimeprime_bb);
 		c = c - (gprime_c+lambda*fprime_c)/(gprimeprime_cc+lambda*fprimeprime_cc);
 		b = b - f/fprime_b;
 
 
 		print("f(b,c) = ", f);
+		print("g(b,c) = ", g);
 
 		print("dgdb(b,c) = ",  gprime_b);
 		print("dgdc(b,c) = ",  gprime_c);
 
 		print("norm(g'(b,c)) = ", sqrt(gprime_c*gprime_c+gprime_b*gprime_b));
 
-		print("dgdc(b,c)+lambda f'(b,c) = ", gprime_c+lambda*fprime_c );
+		print("dgdc(b,c)+lambda dfdc(b,c) = ", gprime_c+lambda*fprime_c );
 
 		double econv = calc -> param.econv();
 		double end = f+gprime_c+lambda*fprime_c;
