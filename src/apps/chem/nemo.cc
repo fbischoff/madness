@@ -858,7 +858,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 		real_function_3d nemodensity_square = nemodensity*nemodensity;
 		real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
-		real_function_3d R_4_approx = R_square_approx*R_square_approx;
+
 
 		double n=double(molecule().total_nuclear_charge())-param.charge();
 		double f=(nemodensity*R_square_approx).trace()-n;
@@ -877,19 +877,22 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		double gprime_c = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[1]).trace();
 
 		//second derivative of g
-		double gprimeprime_bb = 4*(nemodensity_square*(2*dRdb_div_R_approx[0]*dRdb_div_R_approx[0]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
-				+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx[0])).trace();
-		double gprimeprime_cc = 4*(nemodensity_square*(2*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]*(R_square_approx_times_R_square_approx_minus_R_square+R_4_approx)
-				+R_square_approx_times_R_square_approx_minus_R_square*d2Rdbdc_div_R_approx[1])).trace();
-		double lambda;
+		double gprimeprime_bb = 4*(nemodensity_square*(2*dRdb_div_R_approx[0]*dRdb_div_R_approx[0]*R_square_approx*(2*R_square_approx-R_square)
+				+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx[0])).trace();
+		double gprimeprime_cc = 4*(nemodensity_square*(2*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]*R_square_approx*(2*R_square_approx-R_square)
+				+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx[1])).trace();
+		double lambda = 1;
 
-		lambda = lambda -(gprime_b+lambda*fprime_b)/(gprimeprime_bb+lambda*fprimeprime_bb);
+		lambda = lambda -((gprime_b+lambda*fprime_b)/(gprimeprime_bb+lambda*fprimeprime_bb));
+
 		c = c - (gprime_c+lambda*fprime_c)/(gprimeprime_cc+lambda*fprimeprime_cc);
+
 		b = b - f/fprime_b;
 
 
 		print("f(b,c) = ", f);
 		print("g(b,c) = ", g);
+		print("lambda = ", lambda);
 
 		print("dgdb(b,c) = ",  gprime_b);
 		print("dgdc(b,c) = ",  gprime_c);
@@ -899,7 +902,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		print("dgdc(b,c)+lambda dfdc(b,c) = ", gprime_c+lambda*fprime_c );
 
 		double econv = calc -> param.econv();
-		double end = f+gprime_c+lambda*fprime_c;
+		double end = fabs(f)+fabs(gprime_c+lambda*fprime_c);
 		if (fabs(end) < econv ){
 		break;
 		}
