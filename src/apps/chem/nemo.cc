@@ -829,6 +829,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
 	double c=*(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin())));
 	int nparam = 2;
+	real_function_3d densapprox;
 
 	print("a = ", a);
 	print("b_1 = ", b);
@@ -889,6 +890,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 		b = b - f/fprime_b;
 
+		densapprox = R_square_approx*nemodensity_square;
 
 		print("f(b,c) = ", f);
 		print("g(b,c) = ", g);
@@ -907,12 +909,13 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		break;
 		}
 
-
 	}
 
 	// compute the density and the coulomb potential
 	START_TIMER(world);
 	Coulomb J=Coulomb(world,this);
+	//new line for computing approximate density
+	J.potential()=J.compute_potential(densapprox);
 	Jnemo = J(nemo);
 	truncate(world, Jnemo);
 	END_TIMER(world, "compute Jnemo");
@@ -932,7 +935,8 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	// compute the exchange-correlation potential
     if (calc->xc.is_dft()) {
         START_TIMER(world);
-        XCOperator xcoperator(world,this,ispin);
+       // XCOperator xcoperator(world,this,ispin);
+        XCOperator xcoperator(world,get_calc()->param.xc(),false,densapprox,densapprox);
         double exc=0.0;
         if (ispin==0) exc=xcoperator.compute_xc_energy();
         print("exc",exc);
