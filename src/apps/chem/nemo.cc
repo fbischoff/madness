@@ -890,7 +890,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 		b = b - f/fprime_b;
 
-		densapprox = R_square_approx*nemodensity_square;
+		densapprox = R_square_approx*nemodensity;
 
 		print("f(b,c) = ", f);
 		print("g(b,c) = ", g);
