@@ -2106,7 +2106,7 @@ private:
 };
 
 
-/*
+
 /// A nuclear correlation factor class
 class SlaterApprox : public NuclearCorrelationFactor {
 public:
@@ -2223,7 +2223,7 @@ private:
     		return 0.0;
         }
 };
-*/
+/*
 
     /// A nuclear correlation factor class similar to Borcherts 1G
     class SlaterApprox : public NuclearCorrelationFactor {
@@ -2347,7 +2347,7 @@ private:
 		return 0.0;
     }
 
-};
+};*/
 
 std::shared_ptr<NuclearCorrelationFactor>
 create_nuclear_correlation_factor(World& world,
