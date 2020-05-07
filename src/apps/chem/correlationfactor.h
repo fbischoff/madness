@@ -2223,16 +2223,16 @@ private:
     		return 0.0;
         }
 };
-/*
+
 
     /// A nuclear correlation factor class similar to Borcherts 1G
-    class SlaterApprox : public NuclearCorrelationFactor {
+    class SlaterApprox_h : public NuclearCorrelationFactor {
     public:
     	/// ctor
 
     	/// @param[in]	world	the world
     	/// @param[in]	mol molecule with the sites of the nuclei
-    	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c)
+    	SlaterApprox_h(World& world, const Molecule& mol, const double a, const double b, const double c)
     : NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c) {
 
     		if (world.rank()==0) {
@@ -2249,7 +2249,7 @@ private:
     		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
     	}
 
-    	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
+    	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox_h;}
 
     private:
 
@@ -2347,7 +2347,7 @@ private:
 		return 0.0;
     }
 
-};*/
+};
 
 std::shared_ptr<NuclearCorrelationFactor>
 create_nuclear_correlation_factor(World& world,

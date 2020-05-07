@@ -70,6 +70,8 @@ namespace madness{
 			return ncf_ptr(new Slater(world, molecule, a));
         } else if (corrfac == "slaterapprox") {
 			return ncf_ptr(new SlaterApprox(world, molecule, a, b, c));
+        } else if (corrfac == "slaterapprox_h") {
+			return ncf_ptr(new SlaterApprox_h(world, molecule, a, b, c));
         } else if (corrfac == "poly4erfc") {
             return ncf_ptr(new poly4erfc(world, molecule, a));
 		} else if (corrfac == "polynomial4") {

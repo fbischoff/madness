@@ -826,6 +826,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 // error measure 1+2
 	// number of parameter listed minus the fixed Slater length parameter a.
 
+	std::string ncf_name=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").first;
 	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
 	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
 	double c=*(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin())));
@@ -834,20 +835,22 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
 	int nparam = parameterlist.size()-1;
 
-	real_function_3d densapprox;
+	real_function_3d densapprox=2.0*R_square*dot(world,calc->amo,calc->amo);
 
 	print("a = ", a);
 	print("b_1 = ", b);
 	print("b_2 = ", c);
 
-	for(int i=0; i<50; i++){
-		std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b,c});
+	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager,
+			param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+
+	for(int i=0; i<0; i++){
+		std::pair<std::string,std::list<double> > ncf_input (ncf_name, {a,b,c});
 
 		//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
 		//              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+		ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager, ncf_input);
 
-		std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-				molecule(), calc->potentialmanager, ncf_input);
 
 		const real_function_3d R_square_approx=ncf_approx->square();
 		save(R_square_approx,"R_square_approx");
@@ -1008,7 +1011,10 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
     Knemo=zero_functions_compressed<double,3>(world,nemo.size());
     if (calc->xc.hf_exchange_coefficient()>0.0) {
         START_TIMER(world);
-        Exchange<double,3> K=Exchange<double,3>(world,this,ispin).same(false).small_memory(false);
+//        Exchange<double,3> K=Exchange<double,3>(world,this,ispin).same(false).small_memory(false);
+        Exchange<double,3> K(world);
+//        K.set_parameter(bra,ket,occ);
+        K.set_parameters(ncf_approx->square()*calc->amo, calc->amo, calc->aocc);
         Knemo=K(nemo);
         scale(world,Knemo,calc->xc.hf_exchange_coefficient());
         truncate(world, Knemo);
