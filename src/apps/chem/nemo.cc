@@ -835,7 +835,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
 	int nparam = parameterlist.size()-1;
 
-	real_function_3d densapprox=2.0*R_square*dot(world,calc->amo,calc->amo);
+	real_function_3d densapprox;
 
 	print("a = ", a);
 	print("b_1 = ", b);
@@ -844,7 +844,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager,
 			param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
 
-	for(int i=0; i<0; i++){
+	for(int i=0; i<50; i++){
 		std::pair<std::string,std::list<double> > ncf_input (ncf_name, {a,b,c});
 
 		//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
@@ -898,7 +898,8 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 		b = b - f/fprime_b;
 
-		densapprox = R_square_approx*nemodensity;
+		densapprox=2.0*R_square_approx*dot(world,calc->amo,calc->amo);
+		//densapprox = R_square_approx*nemodensity;
 
 		print("f(b,c) = ", f);
 		print("g(b,c) = ", g);
@@ -918,85 +919,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		}
 
 	}
-/*
-// error measure 1+2 for Borchert 1G
-		// number of parameter listed minus the fixed Slater length parameter a.
 
-		double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
-		double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
-
-		int nparam = 1;
-
-		real_function_3d densapprox;
-
-		print("a = ", a);
-		print("b_1 = ", b);
-
-
-		for(int i=0; i<50; i++){
-			std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b});
-
-			//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-			//              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
-
-			std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-					molecule(), calc->potentialmanager, ncf_input);
-
-			const real_function_3d R_square_approx=ncf_approx->square();
-			save(R_square_approx,"R_square_approx");
-
-			const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(0);
-			save(dRdb_div_R_approx,"dRdb_div_R_approx");
-
-			const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(0,0);
-
-			real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-
-			real_function_3d nemodensity_square = nemodensity*nemodensity;
-			real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
-
-
-			double n=double(molecule().total_nuclear_charge())-param.charge();
-			double f=(nemodensity*R_square_approx).trace()-n;
-			double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
-
-			//first derivative of f
-			double fprime_b = 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
-
-
-			//second derivative of f
-			double fprimeprime_bb = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx*dRdb_div_R_approx+R_square_approx*d2Rdbdc_div_R_approx)).trace();
-
-
-			//first derivative of g
-			double gprime_b = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx).trace() ;
-
-			//second derivative of g
-			double gprimeprime_bb = 4*(nemodensity_square*(2*dRdb_div_R_approx*dRdb_div_R_approx*R_square_approx*(2*R_square_approx-R_square)
-					+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx)).trace();
-
-			double lambda = 1;
-
-			lambda = lambda -((gprime_b+lambda*fprime_b)/(gprimeprime_bb+lambda*fprimeprime_bb));
-
-			b = b - f/fprime_b;
-
-			densapprox = R_square_approx*nemodensity;
-
-			print("f(b,c) = ", f);
-			print("g(b,c) = ", g);
-			print("lambda = ", lambda);
-
-			print("dgdb(b,c) = ",  gprime_b);
-			print("h(b,c) = ", gprime_b+lambda*fprime_b);
-
-			double econv = calc -> param.econv();
-			double end = fabs(f)+fabs(gprime_b+lambda*fprime_b);
-			if (fabs(end) < econv ){
-			break;
-			}
-
-		}*/
 	// compute the density and the coulomb potential
 	START_TIMER(world);
 	Coulomb J=Coulomb(world,this);
