@@ -51,11 +51,12 @@ namespace madness{
 
 		std::string corrfac=ncf.first;
 		std::list<double> factors=ncf.second;
-		double a=0.0, b=0.0, c=0.0;
+		double a=0.0, b=0.0, c=0.0, d=0.0;
 		auto iter=factors.begin();
 		if (factors.size()>0) a=*(iter);
 		if (factors.size()>1) b=*(++iter);
 		if (factors.size()>2) c=*(++iter);
+		if (factors.size()>3) d=*(++iter);
 
 
 		typedef std::shared_ptr<NuclearCorrelationFactor> ncf_ptr;
@@ -69,7 +70,7 @@ namespace madness{
         } else if (corrfac == "slater") {
 			return ncf_ptr(new Slater(world, molecule, a));
         } else if (corrfac == "slaterapprox") {
-			return ncf_ptr(new SlaterApprox(world, molecule, a, b, c));
+			return ncf_ptr(new SlaterApprox(world, molecule, a, b, c, d));
         } else if (corrfac == "slaterapprox_h") {
 			return ncf_ptr(new SlaterApprox_h(world, molecule, a, b, c));
         } else if (corrfac == "poly4erfc") {

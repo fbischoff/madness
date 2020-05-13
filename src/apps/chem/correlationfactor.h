@@ -2114,18 +2114,19 @@ public:
 
 	/// @param[in]	world	the world
 	/// @param[in]	mol molecule with the sites of the nuclei
-	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c)
-		: NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c) {
+	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c,  const double d)
+		: NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c), d_(d) {
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = 1 + b_1/(a-1) exp(-0.5 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(-6 a a Z_A Z_A r_{1A} r_{1A})");
+			print("  S_A = 1 + b_1/(a-1) exp(-0.25 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(-4 d a a Z_A Z_A r_{1A} r_{1A})");
 			print("    a = ",a_);
 			print("    b_1 = ",b_);
 			print("    b_2 = ",c_);
+			print("    d = ",d_);
 			print("which is of SlaterApprox type\n");
 		}
-		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+		if (a==0.0 or b==0.0 or c==0.0 or d==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
 	}
 
 	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
@@ -2133,7 +2134,7 @@ public:
 private:
 
 	/// the length scale parameter
-	double a_, b_, c_;
+	double a_, b_, c_, d_;
 
 	/// first derivative of the correlation factor wrt (r-R_A)
 
@@ -2166,7 +2167,7 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0 + b_/(a_-1.0) * exp(-0.25*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-6*a_*a_*Z*Z*r*r);
+    	return 1.0 + b_/(a_-1.0) * exp(-0.25*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-4*d_*a_*a_*Z*Z*r*r);
 	}
 
     /// the nuclear correlation factor
@@ -2175,8 +2176,12 @@ private:
     		return 1.0/(a_-1.0) * exp(-0.25*a_*a_*Z*Z*r*r);
     	}
     	else if (iparam1==1) {
-    		return 1.0/(a_-1.0) * exp(-6*a_*a_*Z*Z*r*r);
+    		return 1.0/(a_-1.0) * exp(-4*d_*a_*a_*Z*Z*r*r);
     	}
+    	else if (iparam1==2) {
+    	    		//return (b_/(a_-1.0)*(-0.125*a_*a_*Z*Z*r*r) * exp(-0.125*d_*a_*a_*Z*Z*r*r))
+    				  return	c_/(a_-1.0)*(-4*a_*a_*Z*Z*r*r) * exp(-4*d_*a_*a_*Z*Z*r*r);
+    	    	}
     }
 
     double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
@@ -2193,6 +2198,13 @@ private:
     	else if ((iparam1 == 0) && (iparam2 == 0)){
     	    		return 0.0;
     			}
+    	else if((iparam1 == 2) && (iparam2 == 2)){
+    				//return (b_/(a_-1.0)*(0.125*a_*a_*Z*Z*r*r)*(0.125*a_*a_*Z*Z*r*r)* exp(-0.125*d_*a_*a_*Z*Z*r*r))
+    				  return	 c_/(a_-1.0)*(4*a_*a_*Z*Z*r*r)*(4*a_*a_*Z*Z*r*r)* exp(-4*d_*a_*a_*Z*Z*r*r);
+    	}
+    	else{
+    				return 0.0;
+    	}
    }
    /// radial part first derivative of the nuclear correlation factor
         coord_3d Sp(const coord_3d& vr1A, const double& Z) const {
@@ -2240,7 +2252,7 @@ private:
     			print("S_A = 1 + a_1/(a-1) exp((- a a Z_A Z_A r_{1A} r_{1A})/b_1)");
     			print("original (Borchert)");
     			print(" a_1 = 64./(27*pi*pi)");
-    			print(" b_1 = 9*pi/4");
+    			print(" b_1 = 4*pi/9");
     			print("    a = ",a_);
     			print("    b_1 = ",b_);
     			print("    a_1 = ",c_);
