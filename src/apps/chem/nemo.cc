@@ -591,6 +591,12 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	truncate(world, psi);
 	END_TIMER(world, "reconstruct psi");
 
+	std::shared_ptr<NuclearCorrelationFactor> ncf_approx = optimize_approximate_ncf(param,nemo);
+
+	const real_function_3d R_square_approx=ncf_approx->square();
+	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+	real_function_3d densapprox=nemodensity*R_square_approx;
+
 /*
 // error measure 1 - one parameter
 	//parameter a and b
@@ -823,111 +829,6 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
         }
 */
 
-// error measure 1+2
-	// number of parameter listed minus the fixed Slater length parameter a.
-
-	std::string ncf_name=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").first;
-	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
-	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
-	double c=*(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin())));
-	double d=*(++(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()))));
-
-	// number of parameter listed minus the fixed Slater length parameter a
-	std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
-	int nparam = parameterlist.size()-1;
-
-	real_function_3d densapprox;
-
-	print("a = ", a);
-	print("b_1 = ", b);
-	print("b_2 = ", c);
-	print("d = ", d);
-
-	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager,
-			param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
-
-	for(int i=0; i<50; i++){
-		std::pair<std::string,std::list<double> > ncf_input (ncf_name, {a,b,c,d});
-
-		//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-		//              molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
-		ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager, ncf_input);
-
-
-		const real_function_3d R_square_approx=ncf_approx->square();
-		save(R_square_approx,"R_square_approx");
-
-		std::vector<real_function_3d> d2Rdbdc_div_R_approx(nparam);
-		d2Rdbdc_div_R_approx[0]=ncf_approx->d2Rdbdc_div_R2(0,0);
-		d2Rdbdc_div_R_approx[1]=ncf_approx->d2Rdbdc_div_R2(1,1);
-		d2Rdbdc_div_R_approx[2]=ncf_approx->d2Rdbdc_div_R2(2,2);
-
-		std::vector<real_function_3d> dRdb_div_R_approx(nparam);
-		dRdb_div_R_approx[0]=ncf_approx->dRdb_div_R2(0);
-		dRdb_div_R_approx[1]=ncf_approx->dRdb_div_R2(1);
-		dRdb_div_R_approx[2]=ncf_approx->dRdb_div_R2(2);
-
-		real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-
-		real_function_3d nemodensity_square = nemodensity*nemodensity;
-		real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
-
-
-		double n=double(molecule().total_nuclear_charge())-param.charge();
-		double f=(nemodensity*R_square_approx).trace()-n;
-		double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
-
-		//first derivative of f
-		double fprime_b = 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[0]).trace();
-		double fprime_c = 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[1]).trace();
-		double fprime_d = 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[2]).trace();
-
-		//second derivative of f
-		double fprimeprime_bb = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[0]*dRdb_div_R_approx[0]+R_square_approx*d2Rdbdc_div_R_approx[0])).trace();
-		double fprimeprime_cc = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]+R_square_approx*d2Rdbdc_div_R_approx[1])).trace();
-		double fprimeprime_dd = 2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[2]*dRdb_div_R_approx[2]+R_square_approx*d2Rdbdc_div_R_approx[2])).trace();
-
-		//first derivative of g
-		double gprime_b = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[0]).trace();
-		double gprime_c = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[1]).trace();
-		double gprime_d = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[2]).trace();
-
-		//second derivative of g
-		double gprimeprime_bb = 4*(nemodensity_square*(2*dRdb_div_R_approx[0]*dRdb_div_R_approx[0]*R_square_approx*(2*R_square_approx-R_square)
-				+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx[0])).trace();
-		double gprimeprime_cc = 4*(nemodensity_square*(2*dRdb_div_R_approx[1]*dRdb_div_R_approx[1]*R_square_approx*(2*R_square_approx-R_square)
-				+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx[1])).trace();
-		double gprimeprime_dd = 4*(nemodensity_square*(2*dRdb_div_R_approx[2]*dRdb_div_R_approx[2]*R_square_approx*(2*R_square_approx-R_square)
-					+R_square_approx*(R_square_approx-R_square)*d2Rdbdc_div_R_approx[2])).trace();
-		double lambda = 1;
-
-		lambda = lambda -((gprime_b+lambda*fprime_b)/(gprimeprime_bb+lambda*fprimeprime_bb));
-
-		d = 0.7*d + 0.3*(d-(gprime_d+lambda*fprime_d)/(gprimeprime_dd+lambda*fprimeprime_dd));
-
-		c = 0.3*c + 0.7*(c - (gprime_c+lambda*fprime_c)/(gprimeprime_cc+lambda*fprimeprime_cc));
-
-		b = 0.7*b + 0.3*( b- f/fprime_b);
-
-
-		densapprox=2.0*R_square_approx*dot(world,calc->amo,calc->amo);
-
-
-		print("f(b,c) = ", f);
-		print("g(b,c) = ", g);
-		print("lambda = ", lambda);
-
-		print("dgdc(b,c,d)+lambda dfdc(b,c,d) = ", gprime_c+lambda*fprime_c );
-		print("dgdd(b,c,d)+lambda dfdd(b,c,d) = ", gprime_d+lambda*fprime_d );
-
-
-		double econv = calc -> param.econv();
-		double end = fabs(f)+fabs(gprime_c+lambda*fprime_c)+fabs(gprime_d+lambda*fprime_d);
-		if (fabs(end) < econv ){
-		break;
-		}
-
-	}
 
 	// compute the density and the coulomb potential
 	START_TIMER(world);
@@ -994,6 +895,121 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
     double size1=get_size(world,Unemo);
 	END_TIMER(world, "compute Unemo "+stringify(size1));
 
+}
+
+std::shared_ptr<NuclearCorrelationFactor> Nemo::optimize_approximate_ncf(const NemoCalculationParameters& param,
+		const vecfuncT& nemo) const {
+
+	std::string ncf_name=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").first;
+
+	std::list<double> parameterlist=param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second;
+	Tensor<double> b=list_to_tensor(parameterlist);
+	print("b",b);
+	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
+//	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
+//	double c=*(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin())));
+//	double d=*(++(++(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()))));
+
+	// number of parameter listed minus the fixed Slater length parameter a
+	int nparam = parameterlist.size()-1;
+
+	double lambda = 1.0;
+	print("a = ", a);
+	print("b_1 = ", b[0l]);
+	print("b_2 = ", b[1]);
+	print("d = ", b[2]);
+	print("lambda = ", lambda);
+
+	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+	real_function_3d nemodensity_square = nemodensity*nemodensity;
+
+
+	std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager,
+			param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+
+	for(int i=0; i<50; i++){
+		std::pair<std::string,std::list<double> > ncf_input (ncf_name, {a,b[0l],b[1],b[2]});
+
+		ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager, ncf_input);
+
+
+		const real_function_3d R_square_approx=ncf_approx->square();
+		save(R_square_approx,"R_square_approx");
+
+		std::vector<real_function_3d> d2Rdb2_div_R_approx(nparam*nparam);	// d^2R / dbdb	-- symmetric matrix
+		auto ij = [&nparam](const int i, const int j) {return i*nparam+j;};
+
+		for (int i=0; i<nparam; ++i) {
+			for (int j=i; j<nparam; ++j) {
+				d2Rdb2_div_R_approx[ij(i,j)]=ncf_approx->d2Rdbdc_div_R2(i,j);
+				d2Rdb2_div_R_approx[ij(j,i)]=d2Rdb2_div_R_approx[ij(i,j)];
+			}
+		}
+
+		std::vector<real_function_3d> dRdb_div_R_approx(nparam);
+		for (int i=0; i<nparam; ++i) {
+			dRdb_div_R_approx[i]=ncf_approx->dRdb_div_R2(i);
+		}
+
+		real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
+
+
+		double n=double(molecule().total_nuclear_charge())-param.charge();
+		double f=(nemodensity*R_square_approx).trace()-n;
+		double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
+
+		//first derivative of f and g
+		Tensor<double> fprime(nparam), gprime(nparam);
+		for (int i=0; i<nparam; ++i) {
+			fprime[i]= 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[i]).trace();
+			gprime[i] = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+		}
+
+		//second derivative of f and g
+		Tensor<double> fpp(nparam,nparam), gpp(nparam,nparam);
+		for (int i=0; i<nparam; ++i) {
+			for (int j=i; j<nparam; ++j) {
+				fpp(i,j)=2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]+R_square_approx*d2Rdb2_div_R_approx[ij(i,j)])).trace();
+				fpp(j,i)=fpp(i,j);
+
+				gpp(i,j)=4.0*(nemodensity_square*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
+						+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
+				gpp(j,i)=gpp(i,j);
+
+			}
+		}
+
+
+		// gradient of the lagrangian
+		Tensor<double> Lprime(nparam+1);
+		Lprime(Slice(0,nparam-1))=gprime + lambda*fprime;
+		Lprime[nparam]=f;
+
+		// hessian of the lagrangian
+		Tensor<double> Lpp(nparam+1,nparam+1);
+		Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=gpp + lambda*fpp;
+		Lpp(nparam,Slice(0,nparam-1))=fprime;								// last line
+		Lpp(Slice(0,nparam-1),nparam)=fprime;								// last column
+		Lpp(nparam,nparam)=0.0;
+
+		// damp the Hessian
+		for (int i=0; i<Lpp.dim(0); ++i) Lpp(i,i)-=0.001;
+		Tensor<double> update=-inner(inverse(Lpp),Lprime);
+		b=b+update(Slice(0,nparam-1));
+		lambda=lambda+update(nparam);
+
+		real_function_3d densapprox=2.0*R_square_approx*dot(world,calc->amo,calc->amo);
+
+
+		print("f(b,c) = ", f);
+		print("g(b,c) = ", g);
+		print("b = ", b);
+		print("lambda = ", lambda);
+
+		double econv = calc -> param.econv();
+		if (Lprime.normf()<econv) break;
+	}
+	return ncf_approx;
 }
 
 

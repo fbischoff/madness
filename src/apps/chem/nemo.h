@@ -535,6 +535,10 @@ private:
 			vecfuncT& Jnemo, vecfuncT& Knemo, vecfuncT& pcmnemo,
 			vecfuncT& Unemo) const;
 
+	std::shared_ptr<NuclearCorrelationFactor> optimize_approximate_ncf(
+			const NemoCalculationParameters& param,
+			const vecfuncT& nemo) const;
+
 	/// return the Coulomb potential
 	real_function_3d get_coulomb_potential(const vecfuncT& psi) const;
 
@@ -607,7 +611,7 @@ protected:
         list.pop_front();
         tensorT t(list.size());
         int i=0;
-        for (auto iter=list.begin(); iter!=list.end(); ++iter) {
+        for (auto iter=list.begin(); iter!=list.end(); ++iter, ++i) {
                 t[i]=*iter;
         }
         return t;
