@@ -51,12 +51,14 @@ namespace madness{
 
 		std::string corrfac=ncf.first;
 		std::list<double> factors=ncf.second;
-		double a=0.0, b=0.0, c=0.0, d=0.0;
+		double a=0.0, b=0.0, c=0.0, d=0.0, e=0.0;
 		auto iter=factors.begin();
 		if (factors.size()>0) a=*(iter);
 		if (factors.size()>1) b=*(++iter);
 		if (factors.size()>2) c=*(++iter);
 		if (factors.size()>3) d=*(++iter);
+		if (factors.size()>4) e=*(++iter);
+
 
 
 		typedef std::shared_ptr<NuclearCorrelationFactor> ncf_ptr;
