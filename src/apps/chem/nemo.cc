@@ -917,7 +917,6 @@ std::shared_ptr<NuclearCorrelationFactor> Nemo::optimize_approximate_ncf(const N
 	print("a = ", a);
 	print("b_1 = ", b[0l]);
 	print("b_2 = ", b[1]);
-	print("d = ", b[2]);
 	print("lambda = ", lambda);
 
 	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
@@ -928,7 +927,7 @@ std::shared_ptr<NuclearCorrelationFactor> Nemo::optimize_approximate_ncf(const N
 			param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
 
 	for(int i=0; i<50; i++){
-		std::pair<std::string,std::list<double> > ncf_input (ncf_name, {a,b[0l],b[1],b[2]});
+		std::pair<std::string,std::list<double> > ncf_input (ncf_name, {a,b[0l],b[1]});
 
 		ncf_approx=create_nuclear_correlation_factor(world,molecule(), calc->potentialmanager, ncf_input);
 
