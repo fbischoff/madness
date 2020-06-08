@@ -2119,7 +2119,7 @@ public:
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = 1 + b_1/(a-1) exp(- 0.25 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(-d a a Z_A Z_A r_{1A} r_{1A})");
+			print("  S_A = 1 + b_1/(a-1) exp(- 1.3 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(- 6.45  a a Z_A Z_A r_{1A} r_{1A})");
 			print("    a = ",a_);
 			print("    b_1 = ",b_);
 			print("    b_2 = ",c_);
@@ -2167,7 +2167,7 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0 + b_/(a_-1.0) * exp(- 0.25*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-d_*a_*a_*Z*Z*r*r);
+    	return 1.0 + b_/(a_-1.0) * exp(- 1.3*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-6.45*a_*a_*Z*Z*r*r);
 	}
 
     /// the nuclear correlation factor
@@ -2176,10 +2176,7 @@ private:
     		return 1.0/(a_-1.0) * exp(-0.25*a_*a_*Z*Z*r*r);
     	}
     	else if (iparam1==1) {
-    		return 1.0/(a_-1.0) * exp(-d_*a_*a_*Z*Z*r*r);
-    	}
-    	else if (iparam1==2) {
-    	    return (c_/(a_-1.0)*(-a_*a_*Z*Z*r*r) * exp(-d_*a_*a_*Z*Z*r*r));
+    		return 1.0/(a_-1.0) * exp(-6.45*a_*a_*Z*Z*r*r);
     	}
     }
 
