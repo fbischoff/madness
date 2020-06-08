@@ -59,6 +59,12 @@ namespace madness{
 		if (factors.size()>3) d=*(++iter);
 		if (factors.size()>4) e=*(++iter);
 
+		int nparam=factors.size()-1;
+		Tensor<double> bb(nparam);
+		int i=0;
+		for (auto iter1 = ++factors.begin(); iter1 != factors.end(); iter1++) {
+			bb[i++]=*iter1;
+		}
 
 
 		typedef std::shared_ptr<NuclearCorrelationFactor> ncf_ptr;
@@ -72,7 +78,7 @@ namespace madness{
         } else if (corrfac == "slater") {
 			return ncf_ptr(new Slater(world, molecule, a));
         } else if (corrfac == "slaterapprox") {
-			return ncf_ptr(new SlaterApprox(world, molecule, a, b, c, d));
+			return ncf_ptr(new SlaterApprox(world, molecule, a, bb));
         } else if (corrfac == "slaterapprox_h") {
 			return ncf_ptr(new SlaterApprox_h(world, molecule, a, b, c));
         } else if (corrfac == "poly4erfc") {
@@ -117,6 +123,115 @@ namespace madness{
 //		for (auto d : ncf.second) ss << " " << d;
 //		return create_nuclear_correlation_factor(world,molecule,pm,ss.str());
 //	}
+
+
+
+	std::shared_ptr<NuclearCorrelationFactor> optimize_approximate_ncf(
+			std::shared_ptr<NuclearCorrelationFactor>& ncf_approx,
+			const std::shared_ptr<NuclearCorrelationFactor>& ncf,
+			const real_function_3d& nemodensity,
+			const int nelectron, const double thresh)  {
+
+
+//		if (SlaterApprox* aaa=dynamic_cast<SlaterApprox*>(ncf_approx.get())) {
+//			;
+//		} else
+//			MADNESS_EXCEPTION("failed to downcast approximate NCF",1);
+//		}
+
+		SlaterApprox& slater_approx = dynamic_cast<SlaterApprox&>(*ncf_approx.get());
+		double a=slater_approx.get_a();
+		Tensor<double> b=copy(slater_approx.get_b());
+
+
+		// number of parameter listed minus the fixed Slater length parameter a
+		int nparam = b.dim(0);
+
+		static double lambda = 1.0;
+		print("a = ", a);
+		print("b = ", b);
+		print("lambda = ", lambda);
+
+		real_function_3d nemodensity_square = nemodensity*nemodensity;
+		const real_function_3d R_square=ncf->square();
+
+		for(int i=0; i<50; i++){
+
+			slater_approx.set_b(b);
+			const real_function_3d R_square_approx=ncf_approx->square();
+
+			save(R_square_approx,"R_square_approx");
+
+			std::vector<real_function_3d> d2Rdb2_div_R_approx(nparam*nparam);	// d^2R / dbdb	-- symmetric matrix
+			auto ij = [&nparam](const int i, const int j) {return i*nparam+j;};
+
+			for (int i=0; i<nparam; ++i) {
+				for (int j=i; j<nparam; ++j) {
+					d2Rdb2_div_R_approx[ij(i,j)]=ncf_approx->d2Rdbdc_div_R2(i,j);
+					d2Rdb2_div_R_approx[ij(j,i)]=d2Rdb2_div_R_approx[ij(i,j)];
+				}
+			}
+
+			std::vector<real_function_3d> dRdb_div_R_approx(nparam);
+			for (int i=0; i<nparam; ++i) {
+				dRdb_div_R_approx[i]=ncf_approx->dRdb_div_R2(i);
+			}
+
+			real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
+
+
+			double f=(nemodensity*R_square_approx).trace()-nelectron;
+			double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
+
+			//first derivative of f and g
+			Tensor<double> fprime(nparam), gprime(nparam);
+			for (int i=0; i<nparam; ++i) {
+				fprime[i]= 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[i]).trace();
+				gprime[i] = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+			}
+
+			//second derivative of f and g
+			Tensor<double> fpp(nparam,nparam), gpp(nparam,nparam);
+			for (int i=0; i<nparam; ++i) {
+				for (int j=i; j<nparam; ++j) {
+					fpp(i,j)=2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]+R_square_approx*d2Rdb2_div_R_approx[ij(i,j)])).trace();
+					fpp(j,i)=fpp(i,j);
+
+					gpp(i,j)=4.0*(nemodensity_square*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
+							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
+					gpp(j,i)=gpp(i,j);
+
+				}
+			}
+
+
+			// gradient of the lagrangian
+			Tensor<double> Lprime(nparam+1);
+			Lprime(Slice(0,nparam-1))=gprime + lambda*fprime;
+			Lprime[nparam]=f;
+
+			// hessian of the lagrangian
+			Tensor<double> Lpp(nparam+1,nparam+1);
+			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=gpp + lambda*fpp;
+			Lpp(nparam,Slice(0,nparam-1))=fprime;								// last line
+			Lpp(Slice(0,nparam-1),nparam)=fprime;								// last column
+			Lpp(nparam,nparam)=0.0;
+
+			// damp the Hessian
+			for (int i=0; i<Lpp.dim(0); ++i) Lpp(i,i)-=0.001;
+			Tensor<double> update=-inner(inverse(Lpp),Lprime);
+			b=b+update(Slice(0,nparam-1));
+			lambda=lambda+update(nparam);
+
+			print("f(b,c) = ", f);
+			print("g(b,c) = ", g);
+			print("b = ", b);
+			print("lambda = ", lambda);
+
+			if (Lprime.normf()<thresh) break;
+		}
+		return ncf_approx;
+	}
 
 
 }
