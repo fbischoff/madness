@@ -151,11 +151,13 @@ public:
 
 	void construct_nuclear_correlation_factor(const Molecule& molecule,
 			const std::shared_ptr<PotentialManager> pm,
-			const std::pair<std::string,std::list<double> > ncf_parameter) {
+			const std::pair<std::string,std::list<double> > ncf_parameter,
+			const std::pair<std::string,std::list<double> > approximate_ncf_parameter=std::pair<std::string,std::list<double> >()) {
 
 	    // construct the nuclear correlation factor:
 	    if (not ncf) {
 	    	ncf=create_nuclear_correlation_factor(world, molecule, pm, ncf_parameter);
+	    	ncf_approx=create_nuclear_correlation_factor(world,molecule, pm,approximate_ncf_parameter);
 	    }
 
 	    // re-project the ncf
@@ -175,6 +177,7 @@ public:
 
 	/// the nuclear correlation factor
 	std::shared_ptr<NuclearCorrelationFactor> ncf;
+	std::shared_ptr<NuclearCorrelationFactor> ncf_approx;
 
 	/// the nuclear correlation factor
 	real_function_3d R;
@@ -496,7 +499,8 @@ private:
         }
         if ((not R.is_initialized()) or (R.thresh()>thresh)) {
             timer timer1(world);
-            construct_nuclear_correlation_factor(calc->molecule, calc->potentialmanager, param.ncf());
+            construct_nuclear_correlation_factor(calc->molecule, calc->potentialmanager, param.ncf(),
+            		param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
             timer1.end("reproject ncf");
         }
 
@@ -534,10 +538,6 @@ private:
 	void compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 			vecfuncT& Jnemo, vecfuncT& Knemo, vecfuncT& pcmnemo,
 			vecfuncT& Unemo) const;
-
-	std::shared_ptr<NuclearCorrelationFactor> optimize_approximate_ncf(
-			const NemoCalculationParameters& param,
-			const vecfuncT& nemo) const;
 
 	/// return the Coulomb potential
 	real_function_3d get_coulomb_potential(const vecfuncT& psi) const;

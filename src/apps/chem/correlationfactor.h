@@ -2119,21 +2119,40 @@ public:
 
 		if (world.rank()==0) {
 			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = 1 + b_1/(a-1) exp(- 1.3 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(- 6.45  a a Z_A Z_A r_{1A} r_{1A})");
+			print("  S_A = 1 + b_1/(a-1) exp(- 0.25 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(- 4  a a Z_A Z_A r_{1A} r_{1A})");
 			print("    a = ",a_);
 			print("    b_1 = ",b_);
 			print("    b_2 = ",c_);
 			print("    d = ",d_);
 			print("which is of SlaterApprox type\n");
 		}
-		if (a==0.0 or b==0.0 or c==0.0 or d==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+//		if (a==0.0 or b==0.0 or c==0.0 or d==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+	}
+
+	/// ctor
+
+	/// @param[in]	world	the world
+	/// @param[in]	mol molecule with the sites of the nuclei
+	SlaterApprox(World& world, const Molecule& mol, const double a, const Tensor<double> bb)
+		: SlaterApprox(world,mol,a,bb[0],bb[1],bb[2]) {
+		set_b(bb);
 	}
 
 	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
 
+	double get_a() const {return a_;};
+	Tensor<double> get_b() const {return bb;};
+	void set_b(const Tensor<double>& b) {
+		bb=b;
+		b_=b[0];
+		c_=b[1];
+	}
+
 private:
 
 	/// the length scale parameter
+	Tensor<double> bb;
 	double a_, b_, c_, d_;
 
 	/// first derivative of the correlation factor wrt (r-R_A)
@@ -2167,7 +2186,7 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0 + b_/(a_-1.0) * exp(- 1.3*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-6.45*a_*a_*Z*Z*r*r);
+    	return 1.0 + b_/(a_-1.0) * exp(- 0.25*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-4.0*a_*a_*Z*Z*r*r);
 	}
 
     /// the nuclear correlation factor
@@ -2176,7 +2195,7 @@ private:
     		return 1.0/(a_-1.0) * exp(-0.25*a_*a_*Z*Z*r*r);
     	}
     	else if (iparam1==1) {
-    		return 1.0/(a_-1.0) * exp(-6.45*a_*a_*Z*Z*r*r);
+    		return 1.0/(a_-1.0) * exp(-4.0*a_*a_*Z*Z*r*r);
     	}
     }
 
@@ -2194,15 +2213,15 @@ private:
     	else if ((iparam1 == 0) && (iparam2 == 0)){
     		return 0.0;
     	}
-    	else if((iparam1 == 2) && (iparam2 == 2)){
-    		return c_/(a_-1.0)*(a_*a_*Z*Z*r*r)*(a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
-    	}
-    	else if((iparam1 == 2) && (iparam2 == 1)){
-    		return 1.0/(a_-1.0)*(-a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
-    	}
-    	else if((iparam1 == 1) && (iparam2 == 2)){
-    		return 1.0/(a_-1.0)*(-a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
-    	}
+//    	else if((iparam1 == 2) && (iparam2 == 2)){
+//    		return c_/(a_-1.0)*(a_*a_*Z*Z*r*r)*(a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
+//    	}
+//    	else if((iparam1 == 2) && (iparam2 == 1)){
+//    		return 1.0/(a_-1.0)*(-a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
+//    	}
+//    	else if((iparam1 == 1) && (iparam2 == 2)){
+//    		return 1.0/(a_-1.0)*(-a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
+//    	}
     	else{
     		return 0.0;
     	}
@@ -2327,6 +2346,9 @@ private:
     		else if ((iparam1 == 0) && (iparam2 == 0)){
     			return c_/(a_-1)*((((a_*a_*Z*Z*r*r)/(b_*b_))*((a_*a_*Z*Z*r*r)/(b_*b_))*exp((-a_*a_*Z*Z*r*r)/b_))
     					-(((2*a_*a_*Z*Z*r*r)/(b_*b_*b_))*exp((-a_*a_*Z*Z*r*r)/b_)));
+    		} else {
+    			MADNESS_EXCEPTION("faulty iparam in correlationfactor::d2Sdbdc ",1);
+    			return 0;
     		}
     	}
 
@@ -2373,6 +2395,14 @@ create_nuclear_correlation_factor(World& world,
 		const Molecule& molecule,
 		const std::shared_ptr<PotentialManager> pm,
 		const std::pair<std::string,std::list<double> >& ncf);
+
+std::shared_ptr<NuclearCorrelationFactor>
+optimize_approximate_ncf(
+		std::shared_ptr<NuclearCorrelationFactor>& approximate_ncf,
+		const std::shared_ptr<NuclearCorrelationFactor>& ncf,
+		const real_function_3d& nemo_density,
+		const int nelectron,
+		const double thresh);
 
 }
 
