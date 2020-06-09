@@ -2114,20 +2114,10 @@ public:
 
 	/// @param[in]	world	the world
 	/// @param[in]	mol molecule with the sites of the nuclei
-	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c,  const double d)
-		: NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c), d_(d) {
+	SlaterApprox(World& world, const Molecule& mol, const double a, const double b, const double c)
+		: NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c) {
 
-		if (world.rank()==0) {
-			print("\nconstructed approximate nuclear correlation factor of the form");
-			print("  S_A = 1 + b_1/(a-1) exp(- 0.25 a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(- 4  a a Z_A Z_A r_{1A} r_{1A})");
-			print("    a = ",a_);
-			print("    b_1 = ",b_);
-			print("    b_2 = ",c_);
-			print("    d = ",d_);
-			print("which is of SlaterApprox type\n");
-		}
-//		if (a==0.0 or b==0.0 or c==0.0 or d==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
-		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+		//
 	}
 
 	/// ctor
@@ -2135,8 +2125,24 @@ public:
 	/// @param[in]	world	the world
 	/// @param[in]	mol molecule with the sites of the nuclei
 	SlaterApprox(World& world, const Molecule& mol, const double a, const Tensor<double> bb)
-		: SlaterApprox(world,mol,a,bb[0],bb[1],bb[2]) {
+		: SlaterApprox(world,mol,a,bb[0],bb[1]) {
 		set_b(bb);
+
+		if (world.rank()==0) {
+					print("\nconstructed approximate nuclear correlation factor of the form");
+					print("  S_A = 1 + b_1/(a-1) exp(- d a a Z_A Z_A r_{1A} r_{1A})+ b_2/(a-1) exp(- e  a a Z_A Z_A r_{1A} r_{1A})");
+					print("    a = ",a_);
+					print("    b_1 = ",bb[0]);
+					print("    b_2 = ",bb[1]);
+
+
+					print("    	 d = insert number");
+					print("   	 e = insert number");
+
+					print("which is of SlaterApprox type\n");
+				}
+
+		if (a==0.0 or bb[0]==0.0 or bb[1]==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
 	}
 
 	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox;}
@@ -2145,15 +2151,20 @@ public:
 	Tensor<double> get_b() const {return bb;};
 	void set_b(const Tensor<double>& b) {
 		bb=b;
-		b_=b[0];
-		c_=b[1];
+		bb[0]=b[0];
+		bb[1]=b[1];
 	}
 
 private:
 
 	/// the length scale parameter
 	Tensor<double> bb;
-	double a_, b_, c_, d_;
+	Tensor<double> b;
+	double a_,b_,c_;
+
+	//exponent parameter
+	double d=0.25;
+	double e=4.00;
 
 	/// first derivative of the correlation factor wrt (r-R_A)
 
@@ -2186,16 +2197,16 @@ private:
 
     /// the nuclear correlation factor
     double S(const double& r, const double& Z) const {
-    	return 1.0 + b_/(a_-1.0) * exp(- 0.25*a_*a_*Z*Z*r*r)+ c_/(a_-1.0) * exp(-4.0*a_*a_*Z*Z*r*r);
+    	return 1.0 + bb[0]/(a_-1.0) * exp(- d*a_*a_*Z*Z*r*r)+ bb[1]/(a_-1.0) * exp(-e*a_*a_*Z*Z*r*r);
 	}
 
     /// the nuclear correlation factor
     double dSdb(const double& r, const double& Z, const int iparam1) const {
     	if (iparam1==0) {
-    		return 1.0/(a_-1.0) * exp(-0.25*a_*a_*Z*Z*r*r);
+    		return 1.0/(a_-1.0) * exp(-d*a_*a_*Z*Z*r*r);
     	}
     	else if (iparam1==1) {
-    		return 1.0/(a_-1.0) * exp(-4.0*a_*a_*Z*Z*r*r);
+    		return 1.0/(a_-1.0) * exp(-e*a_*a_*Z*Z*r*r);
     	}
     }
 
@@ -2213,15 +2224,6 @@ private:
     	else if ((iparam1 == 0) && (iparam2 == 0)){
     		return 0.0;
     	}
-//    	else if((iparam1 == 2) && (iparam2 == 2)){
-//    		return c_/(a_-1.0)*(a_*a_*Z*Z*r*r)*(a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
-//    	}
-//    	else if((iparam1 == 2) && (iparam2 == 1)){
-//    		return 1.0/(a_-1.0)*(-a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
-//    	}
-//    	else if((iparam1 == 1) && (iparam2 == 2)){
-//    		return 1.0/(a_-1.0)*(-a_*a_*Z*Z*r*r)* exp(-d_*a_*a_*Z*Z*r*r);
-//    	}
     	else{
     		return 0.0;
     	}
