@@ -2134,10 +2134,8 @@ public:
 					print("    a = ",a_);
 					print("    b_1 = ",bb[0]);
 					print("    b_2 = ",bb[1]);
-
-
-					print("    	 d = insert number");
-					print("   	 e = insert number");
+					print ("	d = ",d);
+					print ("	e = ",e);
 
 					print("which is of SlaterApprox type\n");
 				}
@@ -2165,6 +2163,7 @@ private:
 	//exponent parameter
 	double d=0.25;
 	double e=4.00;
+
 
 	/// first derivative of the correlation factor wrt (r-R_A)
 
@@ -2402,6 +2401,7 @@ std::shared_ptr<NuclearCorrelationFactor>
 optimize_approximate_ncf(
 		std::shared_ptr<NuclearCorrelationFactor>& approximate_ncf,
 		const std::shared_ptr<NuclearCorrelationFactor>& ncf,
+		std::shared_ptr<real_convolution_3d> poisson,
 		const real_function_3d& nemo_density,
 		const int nelectron,
 		const double thresh);
