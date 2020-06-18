@@ -131,6 +131,7 @@ namespace madness{
 			const std::shared_ptr<NuclearCorrelationFactor>& ncf,
 			std::shared_ptr<real_convolution_3d> poisson,
 			const real_function_3d& nemodensity,
+			const std::vector<Function<double,3> >& nemo,
 			const int nelectron, const double thresh)  {
 
 
@@ -156,11 +157,50 @@ namespace madness{
 		real_function_3d nemodensity_square = nemodensity*nemodensity;
 		const real_function_3d R_square=ncf->square();
 
-		//V^J(r') Coulomb potential
+		//coulomb potential
 //		double vj= (((nemodensity*R_square)/(r-r[i])).trace())*nemodensity;;
 		real_function_3d vj=(*poisson)(nemodensity*R_square);
-		real_function_3d intermediate=vj*nemodensity;
+		real_function_3d intermediate_j=vj*nemodensity;
 
+
+		//exchange term
+
+		//exchange potential
+		const long nmo=nemo.size();
+		std::vector<real_function_3d> vx(nmo*nmo);
+
+		/*for (int i=0; i<nmo; ++i){
+			for (int j=0; j<nmo; ++j){
+				vx[i*nmo+j] =(*poisson)(nemo[i]*nemo[j]*R_square);
+				vx[i*nmo+j] = vx[j*nmo+i];
+			}
+		}*/
+
+		//difference of approximate and exact density matrices
+		std::vector<real_function_3d> delta_rho_ij_div_R_Ra(nmo*nmo);
+
+		//Ex^2 exchange Energie
+
+		real_function_3d intermediate_x=(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0]-(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
+				//(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
+
+		//delta_rho_ij = nemo[i]*nemo[j]*(R_square-R_square_qpprox)
+		for (int i=0; i<nmo; ++i){
+			for (int j=0; j<nmo; ++j){
+				vx[i*nmo+j] =(*poisson)(nemo[i]*nemo[j]*R_square);
+				//vx[i*nmo+j] = vx[j*nmo+i];
+
+				delta_rho_ij_div_R_Ra[i*nmo+j] = nemo[i]*nemo[j];
+				//delta_rho_ij_div_R_Ra[i*nmo+j] = delta_rho_ij_div_R_Ra[j*nmo+i];
+
+				std::vector<real_function_3d> matrix_elements (nmo*nmo);
+				matrix_elements[i*nmo+j] =  delta_rho_ij_div_R_Ra[i*nmo+j]*vx[i*nmo+j];
+
+				intermediate_x = intermediate_x + matrix_elements[i*nmo+j];
+			}
+		}
+
+		printf("DEBUG\n");
 
 		for(int i=0; i<50; i++){
 
@@ -188,18 +228,21 @@ namespace madness{
 
 			double f=(nemodensity*R_square_approx).trace()-nelectron;
 			double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
-			double ej=inner(intermediate,R_square-R_square_approx);
+			double ej=((intermediate_j*R_square-intermediate_j*R_square_approx)*(intermediate_j*R_square-intermediate_j*R_square_approx)).trace();
+
+			double ex = ((intermediate_x*R_square-intermediate_x*R_square_approx)*(intermediate_x*R_square-intermediate_x*R_square_approx)).trace();
 
 			//first derivative of f and g
-			Tensor<double> fprime(nparam), gprime(nparam), ejprime(nparam);
+			Tensor<double> fprime(nparam), gprime(nparam), ejprime(nparam), exprime(nparam);
 			for (int i=0; i<nparam; ++i) {
 				fprime[i]= 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[i]).trace();
 				gprime[i] = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
-				ejprime[i]= 4.0*(intermediate*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+				ejprime[i]= 4.0*(intermediate_j*intermediate_j*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+				exprime[i]= 4.0*(intermediate_x*intermediate_x*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
 			}
 
 			//second derivative of f and g
-			Tensor<double> fpp(nparam,nparam), gpp(nparam,nparam), ejpp(nparam,nparam);
+			Tensor<double> fpp(nparam,nparam), gpp(nparam,nparam), ejpp(nparam,nparam), expp(nparam,nparam);
 			for (int i=0; i<nparam; ++i) {
 				for (int j=i; j<nparam; ++j) {
 					fpp(i,j)=2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]+R_square_approx*d2Rdb2_div_R_approx[ij(i,j)])).trace();
@@ -209,22 +252,25 @@ namespace madness{
 							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
 					gpp(j,i)=gpp(i,j);
 
-					ejpp(i,j)=4.0*(intermediate*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
+					ejpp(i,j)=4.0*(intermediate_j*intermediate_j*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
 							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
 					ejpp(j,i)=ejpp(i,j);
+
+					expp(i,j)=4.0*(intermediate_x*intermediate_x*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
+							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
+					expp(j,i)=expp(i,j);
 
 				}
 			}
 
-
 			// gradient of the lagrangian
 			Tensor<double> Lprime(nparam+1);
-			Lprime(Slice(0,nparam-1))=ejprime + lambda*fprime;
+			Lprime(Slice(0,nparam-1))=exprime + lambda*fprime;
 			Lprime[nparam]=f;
 
 			// hessian of the lagrangian
 			Tensor<double> Lpp(nparam+1,nparam+1);
-			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=ejpp + lambda*fpp;
+			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=expp + lambda*fpp;
 			Lpp(nparam,Slice(0,nparam-1))=fprime;								// last line
 			Lpp(Slice(0,nparam-1),nparam)=fprime;								// last column
 			Lpp(nparam,nparam)=0.0;
@@ -238,6 +284,7 @@ namespace madness{
 			print("f(b,c) = ", f);
 			print("g(b,c) = ", g);
 			print ("ej(b,c)= ", ej);
+			print ("ex(b,c)= ", ex);
 			print("b = ", b);
 			print("lambda = ", lambda);
 

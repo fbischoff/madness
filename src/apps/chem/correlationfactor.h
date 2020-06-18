@@ -2403,6 +2403,7 @@ optimize_approximate_ncf(
 		const std::shared_ptr<NuclearCorrelationFactor>& ncf,
 		std::shared_ptr<real_convolution_3d> poisson,
 		const real_function_3d& nemo_density,
+		const vector<Function<double,3> >& nemo,
 		const int nelectron,
 		const double thresh);
 
