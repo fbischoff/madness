@@ -160,7 +160,7 @@ namespace madness{
 		//coulomb potential
 //		double vj= (((nemodensity*R_square)/(r-r[i])).trace())*nemodensity;;
 		real_function_3d vj=(*poisson)(nemodensity*R_square);
-		real_function_3d intermediate_j=vj*nemodensity;
+		real_function_3d intermediate_j=vj*vj*nemodensity*nemodensity;
 
 
 		//exchange term
@@ -181,7 +181,7 @@ namespace madness{
 
 		//Ex^2 exchange Energie
 
-		real_function_3d intermediate_x=(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0]-(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
+		real_function_3d intermediate_x_root=(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0]-(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
 				//(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
 
 		//delta_rho_ij = nemo[i]*nemo[j]*(R_square-R_square_qpprox)
@@ -196,11 +196,11 @@ namespace madness{
 				std::vector<real_function_3d> matrix_elements (nmo*nmo);
 				matrix_elements[i*nmo+j] =  delta_rho_ij_div_R_Ra[i*nmo+j]*vx[i*nmo+j];
 
-				intermediate_x = intermediate_x + matrix_elements[i*nmo+j];
+				intermediate_x_root = intermediate_x_root + matrix_elements[i*nmo+j];
 			}
 		}
 
-		printf("DEBUG\n");
+		real_function_3d intermediate_x = intermediate_x_root*intermediate_x_root;
 
 		for(int i=0; i<50; i++){
 
@@ -283,8 +283,8 @@ namespace madness{
 
 			print("f(b,c) = ", f);
 			print("g(b,c) = ", g);
-			print ("ej(b,c)= ", ej);
-			print ("ex(b,c)= ", ex);
+			print ("ej(b,c)^2 = ", ej);
+			print ("ex(b,c)^2 = ", ex);
 			print("b = ", b);
 			print("lambda = ", lambda);
 
