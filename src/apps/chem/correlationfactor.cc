@@ -160,7 +160,7 @@ namespace madness{
 		//coulomb potential
 //		double vj= (((nemodensity*R_square)/(r-r[i])).trace())*nemodensity;;
 		real_function_3d vj=(*poisson)(nemodensity*R_square);
-		real_function_3d intermediate_j=vj*vj*nemodensity*nemodensity;
+		real_function_3d intermediate_j=vj*nemodensity;
 
 
 		//exchange term
@@ -181,7 +181,7 @@ namespace madness{
 
 		//Ex^2 exchange Energie
 
-		real_function_3d intermediate_x_root=(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0]-(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
+		real_function_3d intermediate_x=(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0]-(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
 				//(*poisson)(nemo[0]*nemo[0]*R_square)*nemo[0]*nemo[0];
 
 		//delta_rho_ij = nemo[i]*nemo[j]*(R_square-R_square_qpprox)
@@ -196,11 +196,10 @@ namespace madness{
 				std::vector<real_function_3d> matrix_elements (nmo*nmo);
 				matrix_elements[i*nmo+j] =  delta_rho_ij_div_R_Ra[i*nmo+j]*vx[i*nmo+j];
 
-				intermediate_x_root = intermediate_x_root + matrix_elements[i*nmo+j];
+				intermediate_x = intermediate_x + matrix_elements[i*nmo+j];
 			}
 		}
 
-		real_function_3d intermediate_x = intermediate_x_root*intermediate_x_root;
 
 		for(int i=0; i<50; i++){
 
@@ -265,12 +264,12 @@ namespace madness{
 
 			// gradient of the lagrangian
 			Tensor<double> Lprime(nparam+1);
-			Lprime(Slice(0,nparam-1))=exprime + lambda*fprime;
+			Lprime(Slice(0,nparam-1))=ejprime + lambda*fprime;
 			Lprime[nparam]=f;
 
 			// hessian of the lagrangian
 			Tensor<double> Lpp(nparam+1,nparam+1);
-			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=expp + lambda*fpp;
+			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=ejpp + lambda*fpp;
 			Lpp(nparam,Slice(0,nparam-1))=fprime;								// last line
 			Lpp(Slice(0,nparam-1),nparam)=fprime;								// last column
 			Lpp(nparam,nparam)=0.0;
