@@ -303,7 +303,7 @@ double Nemo::solve(const SCFProtocol& proto) {
 	    if (ncf_approx!=NULL) {
 	    	const real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
 	    	const double nelectron=double(molecule().total_nuclear_charge())-param.charge();
-	    	ncf_approx=optimize_approximate_ncf(ncf_approx,ncf,poisson,nemodensity,nemo,nelectron,param.econv());
+	    	ncf_approx=optimize_approximate_ncf(world,ncf_approx,ncf,poisson,nemodensity,nemo,nelectron,param.econv());
 		}
 
 
