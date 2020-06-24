@@ -155,14 +155,14 @@ namespace madness{
 		print("b = ", b);
 		print("lambda = ", lambda);
 
-		real_function_3d nemodensity_square = nemodensity*nemodensity;
+		const real_function_3d nemodensity_square = nemodensity*nemodensity;
 		const real_function_3d R_square=ncf->square();
 
 		//coulomb potential
 //		double vj= (((nemodensity*R_square)/(r-r[i])).trace())*nemodensity;;
-		real_function_3d vj=(*poisson)(nemodensity*R_square);
-		real_function_3d intermediate_j=vj*nemodensity;
-		real_function_3d intermediate_j_square = intermediate_j*intermediate_j;
+		const real_function_3d vj=(*poisson)(nemodensity*R_square);
+		const real_function_3d intermediate_j=vj*nemodensity;
+		//const real_function_3d intermediate_j_square = intermediate_j*intermediate_j;
 
 		//exchange term
 
@@ -184,11 +184,16 @@ namespace madness{
 		//delta_rho_ij = nemo[i]*nemo[j]*(R_square-R_square_qpprox)
 		for (int i=0; i<nmo; ++i){
 			for (int j=0; j<nmo; ++j){
-				real_function_3d vx =(*poisson)(nemo[i]*nemo[j]*R_square);
-				//vx[i*nmo+j] = vx[j*nmo+i];
 
+				//std::vector<real_function_3d> vx (nmo*nmo);
+				real_function_3d vx =(*poisson)(nemo[i]*nemo[j]*R_square);
+				(*poisson)(nemo[i]*nemo[j]*R_square)=(*poisson)(nemo[j]*nemo[i]*R_square);
+
+
+				//std::vector<real_function_3d> delta_rho_ij_div_R_Ra (nmo*nmo);
 				real_function_3d delta_rho_ij_div_R_Ra = nemo[i]*nemo[j];
-				//delta_rho_ij_div_R_Ra[i*nmo+j] = delta_rho_ij_div_R_Ra[j*nmo+i];
+				nemo[i]*nemo[j] = nemo[j]*nemo[i];
+
 
 				//std::vector<real_function_3d> matrix_elements (nmo*nmo);
 				real_function_3d matrix_elements =  delta_rho_ij_div_R_Ra*vx;
@@ -197,7 +202,7 @@ namespace madness{
 			}
 		}
 
-		real_function_3d intermediate_x_square = intermediate_x*intermediate_x;
+		//const real_function_3d intermediate_x_square = intermediate_x*intermediate_x;
 
 
 		for(int i=0; i<50; i++){
@@ -224,29 +229,71 @@ namespace madness{
 
 			real_function_3d R_square_approx_times_R_square_approx_minus_R_square = R_square_approx*(R_square_approx-R_square);
 
+			//constraint
 			double f=(nemodensity*R_square_approx).trace()-nelectron;
+
+			//choose the error measure subjected to f
+			int error_measure = 3;
+
+
+			/*the different error measures are subjected to the constraint f
+			 error measure =1:  g - difference in densities,
+			 error measure =2:  e_j - coulomb term,
+			 error measure =3:  e_x - exchange term
+			*/
+
+			real_function_3d intermediate;
+			if(error_measure==1){
+				   intermediate = nemodensity;
+			}
+			else if(error_measure==2){
+				intermediate = intermediate_j;
+			}
+			else if(error_measure==3){
+					intermediate = intermediate_x;
+			}
+			else {
+				 print( "error measure is not assigned yet");
+			}
+
+
+			real_function_3d intermediate_square = intermediate*intermediate;
+
+			//function subjected to the constraint f
+			double function = ((intermediate*R_square-intermediate*R_square_approx)*(intermediate*R_square-intermediate*R_square_approx)).trace();
+
+
 			double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
 			double ej=((intermediate_j*R_square-intermediate_j*R_square_approx)*(intermediate_j*R_square-intermediate_j*R_square_approx)).trace();
 
 			double ex = ((intermediate_x*R_square-intermediate_x*R_square_approx)*(intermediate_x*R_square-intermediate_x*R_square_approx)).trace();
 
 			//first derivative of f and g
-			Tensor<double> fprime(nparam), gprime(nparam), ejprime(nparam), exprime(nparam);
+			Tensor<double> fprime(nparam), functionprime(nparam);
 			for (int i=0; i<nparam; ++i) {
 				fprime[i]= 2.0*(nemodensity*R_square_approx*dRdb_div_R_approx[i]).trace();
-				gprime[i] = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+
+				functionprime[i]= 4.0*(intermediate_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+
+				/*gprime[i] = 4.0*(nemodensity_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
 				ejprime[i]= 4.0*(intermediate_j_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
-				exprime[i]= 4.0*(intermediate_x_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();
+				exprime[i]= 4.0*(intermediate_x_square*R_square_approx_times_R_square_approx_minus_R_square*dRdb_div_R_approx[i]).trace();*/
 			}
 
 			//second derivative of f and g
-			Tensor<double> fpp(nparam,nparam), gpp(nparam,nparam), ejpp(nparam,nparam), expp(nparam,nparam);
+			Tensor<double> fpp(nparam,nparam), functionpp(nparam,nparam);
 			for (int i=0; i<nparam; ++i) {
 				for (int j=i; j<nparam; ++j) {
 					fpp(i,j)=2.0*(nemodensity*(2*R_square_approx*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]+R_square_approx*d2Rdb2_div_R_approx[ij(i,j)])).trace();
 					fpp(j,i)=fpp(i,j);
 
-					gpp(i,j)=4.0*(nemodensity_square*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
+
+					functionpp(i,j)=4.0*(intermediate_square*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
+							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
+					functionpp(j,i)=functionpp(i,j);
+
+
+					/*gpp(i,j)=4.0*(nemodensity_square*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
 							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
 					gpp(j,i)=gpp(i,j);
 
@@ -256,22 +303,19 @@ namespace madness{
 
 					expp(i,j)=4.0*(intermediate_x_square*(2*dRdb_div_R_approx[i]*dRdb_div_R_approx[j]*R_square_approx*(2*R_square_approx-R_square)
 							+R_square_approx*(R_square_approx-R_square)*d2Rdb2_div_R_approx[ij(i,j)])).trace();
-					expp(j,i)=expp(i,j);
+					expp(j,i)=expp(i,j);*/
 
 				}
 			}
 
 			// gradient of the lagrangian
 			Tensor<double> Lprime(nparam+1);
-			Lprime(Slice(0,nparam-1))=ejprime + lambda*fprime;
+			Lprime(Slice(0,nparam-1))=functionprime + lambda*fprime;
 			Lprime[nparam]=f;
-			
-			//print whether g, ej or ex is used as the second error measure
-			print("ej is used");				
 
 			// hessian of the lagrangian
 			Tensor<double> Lpp(nparam+1,nparam+1);
-			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=ejpp + lambda*fpp;
+			Lpp(Slice(0,nparam-1),Slice(0,nparam-1))=functionpp + lambda*fpp;
 			Lpp(nparam,Slice(0,nparam-1))=fprime;								// last line
 			Lpp(Slice(0,nparam-1),nparam)=fprime;								// last column
 			Lpp(nparam,nparam)=0.0;
@@ -283,9 +327,10 @@ namespace madness{
 			lambda=lambda+update(nparam);
 
 			print("f(b,c) = ", f);
-			print("g(b,c) = ", g);
-			print ("ej(b,c)^2 = ", ej);
-			print ("ex(b,c)^2 = ", ex);
+			print("optimized with error measure ", error_measure);
+			print("1. g(b,c) = ", g);
+			print ("2. ej(b,c)^2 = ", ej);
+			print ("3. ex(b,c)^2 = ", ex);
 			print("b = ", b);
 			print("lambda = ", lambda);
 
