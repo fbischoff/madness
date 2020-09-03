@@ -10,6 +10,9 @@
 #ifndef SRC_MADNESS_WORLD_CLOUD_H_
 #define SRC_MADNESS_WORLD_CLOUD_H_
 
+
+#include <madness/world/parallel_dc_archive.h>
+
 namespace madness {
 
 
@@ -52,10 +55,8 @@ class Cloud  {
 	};
 
 public:
-	/// @param[in]	w	the universe world
-	Cloud(madness::World& w) : container(w) {
-		MADNESS_ASSERT(w.id()==0);
-	}
+	/// @param[in]	universe	the universe world
+	Cloud(madness::World& universe) : container(universe) {}
 
 	void set_debug(bool value) {
 		debug=value;
@@ -118,7 +119,9 @@ public:
         if (debug) std::cout << "loading " << typeid(T).name() << " to world " << world.id() << " from record " << record << std::endl;
         madness::archive::ContainerRecordInputArchive ar(world,container,record);
         madness::archive::ParallelInputArchive<madness::archive::ContainerRecordInputArchive> par(world, ar);
+        std::cout << "before loading " << world.id() << std::endl;
         par & target;
+        std::cout << "after loading " << std::endl;
         if (dofence) world.gop.fence();
 	}
 
