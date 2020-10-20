@@ -78,6 +78,8 @@
 #include <chem/molecule.h>
 #include <chem/potentialmanager.h>
 #include <chem/atomutil.h>
+//#include <madness/constants.h> //only needed for constant - Pi
+
 
 using namespace madness;
 
@@ -87,7 +89,7 @@ namespace madness {
 class NuclearCorrelationFactor {
 public:
 	enum corrfactype {None, GradientalGaussSlater, GaussSlater, LinearSlater,
-	    Polynomial, Slater, SlaterApprox, SlaterApprox_h, poly4erfc, Two};
+	    Polynomial, Slater, SlaterApprox, SlaterApprox_error, poly4erfc, Two};
 	typedef std::shared_ptr< FunctionFunctorInterface<double,3> > functorT;
 
 	/// ctor
@@ -2246,36 +2248,51 @@ private:
 };
 
 
-    /// A nuclear correlation factor class similar to Borcherts 1G
-    class SlaterApprox_h : public NuclearCorrelationFactor {
+    /// A nuclear correlation factor class using error functions as local functions
+    class SlaterApprox_error : public NuclearCorrelationFactor {
     public:
     	/// ctor
 
     	/// @param[in]	world	the world
     	/// @param[in]	mol molecule with the sites of the nuclei
-    	SlaterApprox_h(World& world, const Molecule& mol, const double a, const double b, const double c)
-    : NuclearCorrelationFactor(world,mol), a_(a), b_(b), c_(c) {
+    	SlaterApprox_error(World& world, const Molecule& mol, const double a, const Tensor<double> bb)
+    : NuclearCorrelationFactor(world,mol), a_(a), b(bb) {
 
     		if (world.rank()==0) {
     			print("\nconstructed approximate nuclear correlation factor of the form");
-    			print("S_A = 1 + a_1/(a-1) exp((- a a Z_A Z_A r_{1A} r_{1A})/b_1)");
-    			print("original (Borchert)");
-    			print(" a_1 = 64./(27*pi*pi)");
-    			print(" b_1 = 4*pi/9");
+    			print("S_A =  b*erf(r/c) * (((exp(-aZr))/(2*a*Z))) + b*erfc(r/c)* (((exp(-(r*r)))/(2*a*Z)))");
+    			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
     			print("    a = ",a_);
-    			print("    b_1 = ",b_);
-    			print("    a_1 = ",c_);
+    			//print("    c = ", b[0]);
+    			//print("    b = ", b[1]);
     			print("which is of SlaterApprox type\n");
     		}
-    		if (a==0.0 or b==0.0 or c==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+    		if (a==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+    		for (int i=0; i<b.size(); ++i) {
+    			if (b[i]==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+    		}
     	}
 
-    	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox_h;}
+
+    	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox_error;}
+    	double get_a() const {return a_;};
+    	Tensor<double> get_b() const {return b;};
+    	void set_b(const Tensor<double>& bb) {
+    			b=bb;
+    	}
 
     private:
 
     	/// the length scale parameter
-    	double a_, b_, c_;
+    	double a_;
+    	Tensor<double> b;
+    	//double b = 0.3;
+    	//double c = 0.45;
+    	//double d = -0.05;
+    	//double g = 4.00;
+
+    	///sqrt of pi
+    	const double sqrtpi=sqrt(constants::pi);
 
     	/// first derivative of the correlation factor wrt (r-R_A)
 
@@ -2306,36 +2323,44 @@ private:
     		return 0.0;
     	}
 
+
     	/// the nuclear correlation factor
     	double S(const double& r, const double& Z) const {
-    		return 1.0 + c_/(a_-1) * exp((-a_*a_*Z*Z*r*r)/b_);
+    		return (erf(r/b[0]) * (1+1/(a_-1)*exp(-a_*Z*r)))+(erfc(r/b[0])* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
     	}
 
     	/// the nuclear correlation factor
     	double dSdb(const double& r, const double& Z, const int iparam1) const {
-    		if (iparam1==0) {
-    			return c_/(a_-1) *(a_*a_*Z*Z*r*r)/(b_*b_)*exp((-a_*a_*Z*Z*r*r)/b_);
+
+    		if(iparam1==0){
+    			return -(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*sqrtpi)
+    					-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*sqrtpi);
     		}
-    		else if (iparam1==1){
-    			return 1/(a_-1)*exp((-a_*a_*Z*Z*r*r)/b_);
-    		}
+    		/*else if(iparam1==1){
+    			return (1/4)*exp(-2*r)*erf(r/b[0]) + (1/4)*exp(-r*r)*erfc(r/b[0]);
+    		}*/
     	}
 
     	double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
 
-    		if ((iparam1 == 0) && (iparam2 == 1)) {
-    			return 0.0;
+    		if ((iparam1 == 0) && (iparam2 == 0)) {
+    			return (4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
+    					-(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
+						-(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi)
+    					+(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi);
+    		}
+    		/*else if ((iparam1 == 0) && (iparam2 == 1)) {
+
+    			return -(exp(-(2*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi) -(exp(-(r*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi);
     		}
     		else if ((iparam1 == 1) && (iparam2 == 0)) {
-    			return 0.0;
+
+    			return -(exp(-(2*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi) -(exp(-(r*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi);
     		}
     		else if ((iparam1 == 1) && (iparam2 == 1)) {
-    			return 0.0;
-    		}
-    		else if ((iparam1 == 0) && (iparam2 == 0)){
-    			return c_/(a_-1)*((((a_*a_*Z*Z*r*r)/(b_*b_))*((a_*a_*Z*Z*r*r)/(b_*b_))*exp((-a_*a_*Z*Z*r*r)/b_))
-    					-(((2*a_*a_*Z*Z*r*r)/(b_*b_*b_))*exp((-a_*a_*Z*Z*r*r)/b_)));
-    		} else {
+    		  return 0;
+    		}*/
+    		else {
     			MADNESS_EXCEPTION("faulty iparam in correlationfactor::d2Sdbdc ",1);
     			return 0;
     		}

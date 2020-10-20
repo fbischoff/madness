@@ -79,9 +79,11 @@ namespace madness{
 			return ncf_ptr(new Slater(world, molecule, a));
         } else if (corrfac == "slaterapprox") {
 			return ncf_ptr(new SlaterApprox(world, molecule, a, bb));
-        } else if (corrfac == "slaterapprox_h") {
-			return ncf_ptr(new SlaterApprox_h(world, molecule, a, b, c));
-        } else if (corrfac == "poly4erfc") {
+        }
+        else if (corrfac == "slaterapprox_error") {
+			return ncf_ptr(new SlaterApprox_error(world, molecule, a, bb));
+        }
+        else if (corrfac == "poly4erfc") {
             return ncf_ptr(new poly4erfc(world, molecule, a));
 		} else if (corrfac == "polynomial4") {
 			return ncf_ptr(new Polynomial<4>(world, molecule, a ));
@@ -142,13 +144,14 @@ namespace madness{
 //			MADNESS_EXCEPTION("failed to downcast approximate NCF",1);
 //		}
 
-		SlaterApprox& slater_approx = dynamic_cast<SlaterApprox&>(*ncf_approx.get());
+		SlaterApprox_error& slater_approx = dynamic_cast<SlaterApprox_error&>(*ncf_approx.get());
 		double a=slater_approx.get_a();
 		Tensor<double> b=copy(slater_approx.get_b());
 
 
 		// number of parameter listed minus the fixed Slater length parameter a
 		int nparam = b.dim(0);
+		//int nparam = 1;
 
 		static double lambda = 1.0;
 		print("a = ", a);
@@ -157,6 +160,7 @@ namespace madness{
 
 		const real_function_3d nemodensity_square = nemodensity*nemodensity;
 		const real_function_3d R_square=ncf->square();
+/*
 
 		//coulomb term
 
@@ -166,7 +170,7 @@ namespace madness{
 		const real_function_3d intermediate_j=vj*nemodensity;
 
 
-/*
+
 		//exchange term
 
 		const long nmo=nemo.size();
@@ -192,12 +196,12 @@ namespace madness{
 				intermediate_x += (i==j) ?  matrix_elements : 2.0*matrix_elements;
 			}
 		}
-
-
 */
-		for(int i=0; i<100; i++){
 
-			slater_approx.set_b(b);
+
+		for(int i=0; i<20; i++){
+
+//			slater_approx.set_b(b);
 			const real_function_3d R_square_approx=ncf_approx->square();
 
 			save(R_square_approx,"R_square_approx");
@@ -223,23 +227,27 @@ namespace madness{
 			double f=(nemodensity*R_square_approx).trace()-nelectron;
 
 			//choose the error measure subjected to f
-			int error_measure = 2;
+			int error_measure = 1;
+			char error_measure_name;
 
-			/*the different error measures are subjected to the constraint f
-			 error measure =1:  g - difference in densities,
-			 error measure =2:  e_j - coulomb term,
-			 error measure =3:  e_x - exchange term
-			*/
+			//the different error measures are subjected to the constraint f
+			 //error measure =1:  g - difference in densities,
+			 //error measure =2:  e_j - coulomb term,
+			// error measure =3:  e_x - exchange term
+
 
 			real_function_3d intermediate;
 			if(error_measure==1){
 				   intermediate = nemodensity;
+				   error_measure_name = 'g';
 			}
-			else if(error_measure==2){
-				intermediate = intermediate_j;
-			}
+//			else if(error_measure==2){
+//				intermediate = intermediate_j;
+//				error_measure_name = 'ej';
+//			}
 //			else if(error_measure==3){
-//					intermediate = intermediate_x;
+//				intermediate = intermediate_x;
+//				error_measure_name = 'ex';
 //			}
 			else {
 				 print( "error measure is not assigned in 'correlationfactor.cc <226>'");
@@ -254,8 +262,8 @@ namespace madness{
 
 			//error measure 1-3	
 			double g=((nemodensity*R_square-nemodensity*R_square_approx)*(nemodensity*R_square-nemodensity*R_square_approx)).trace();
-			double ej=((intermediate_j*R_square-intermediate_j*R_square_approx)*(intermediate_j*R_square-intermediate_j*R_square_approx)).trace();
-			//double ex = ((intermediate_x*R_square-intermediate_x*R_square_approx)*(intermediate_x*R_square-intermediate_x*R_square_approx)).trace();
+//			double ej=((intermediate_j*R_square-intermediate_j*R_square_approx)*(intermediate_j*R_square-intermediate_j*R_square_approx)).trace();
+//			double ex = ((intermediate_x*R_square-intermediate_x*R_square_approx)*(intermediate_x*R_square-intermediate_x*R_square_approx)).trace();
 
 			//first derivative of f and the function subjected to f
 			Tensor<double> fprime(nparam), functionprime(nparam);
@@ -298,9 +306,9 @@ namespace madness{
 			lambda=lambda+update(nparam);
 
 			print("f(b,c) = ", f);
-			print("optimized with error measure ", error_measure);
+			print("optimized with error measure ", error_measure_name);
 			print("1.  g(b,c)   = ", g);
-			print("2. ej(b,c)^2 = ", ej);
+//			print("2. ej(b,c)^2 = ", ej);
 //			print("3. ex(b,c)^2 = ", ex);
 			print("b = ", b);
 			print("lambda = ", lambda);
