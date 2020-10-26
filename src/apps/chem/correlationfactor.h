@@ -2260,10 +2260,11 @@ private:
 
     		if (world.rank()==0) {
     			print("\nconstructed approximate nuclear correlation factor of the form");
-    			print("S_A =  b*erf(r/c) * (((exp(-aZr))/(2*a*Z))) + b*erfc(r/c)* (((exp(-(r*r)))/(2*a*Z)))");
+    			print("S_A = (erf(r/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ A (erfc(r/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
     			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
     			print("    a = ",a_);
-    			//print("    c = ", b[0]);
+    			print ("   c = ",c);
+    			print("    A = ", b[0]);
     			//print("    b = ", b[1]);
     			print("which is of SlaterApprox type\n");
     		}
@@ -2280,13 +2281,15 @@ private:
     	void set_b(const Tensor<double>& bb) {
     			b=bb;
     	}
+    	//double get_c() const {return c_;};
 
     private:
 
     	/// the length scale parameter
     	double a_;
     	Tensor<double> b;
-    	//double b = 0.3;
+    	double c = 0.8;
+    	//double c = 0.3;
     	//double c = 0.45;
     	//double d = -0.05;
     	//double g = 4.00;
@@ -2326,15 +2329,16 @@ private:
 
     	/// the nuclear correlation factor
     	double S(const double& r, const double& Z) const {
-    		return (erf(r/b[0]) * (1+1/(a_-1)*exp(-a_*Z*r)))+(erfc(r/b[0])* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
+    		return (erf(r/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ b[0]*(erfc(r/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
     	}
 
     	/// the nuclear correlation factor
     	double dSdb(const double& r, const double& Z, const int iparam1) const {
 
     		if(iparam1==0){
-    			return -(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*sqrtpi)
-    					-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*sqrtpi);
+    			return  (1+exp(-4*r*r))*erfc(r/c);
+    					/*-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*sqrtpi)
+    					-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*sqrtpi);*/
     		}
     		/*else if(iparam1==1){
     			return (1/4)*exp(-2*r)*erf(r/b[0]) + (1/4)*exp(-r*r)*erfc(r/b[0]);
@@ -2343,12 +2347,13 @@ private:
 
     	double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
 
-    		if ((iparam1 == 0) && (iparam2 == 0)) {
-    			return (4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
+
+    			return 0.0;
+    					/*(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
     					-(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
 						-(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi)
-    					+(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi);
-    		}
+    					+(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi);*/
+
     		/*else if ((iparam1 == 0) && (iparam2 == 1)) {
 
     			return -(exp(-(2*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi) -(exp(-(r*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi);
@@ -2360,10 +2365,10 @@ private:
     		else if ((iparam1 == 1) && (iparam2 == 1)) {
     		  return 0;
     		}*/
-    		else {
+    		/*else {
     			MADNESS_EXCEPTION("faulty iparam in correlationfactor::d2Sdbdc ",1);
     			return 0;
-    		}
+    		}*/
     	}
 
 

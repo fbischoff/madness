@@ -54,8 +54,8 @@ namespace madness{
 		double a=0.0, b=0.0, c=0.0, d=0.0, e=0.0;
 		auto iter=factors.begin();
 		if (factors.size()>0) a=*(iter);
-		if (factors.size()>1) b=*(++iter);
-		if (factors.size()>2) c=*(++iter);
+		if (factors.size()>1) c=*(++iter);
+		if (factors.size()>2) b=*(++iter);
 		if (factors.size()>3) d=*(++iter);
 		if (factors.size()>4) e=*(++iter);
 
@@ -147,6 +147,7 @@ namespace madness{
 		SlaterApprox_error& slater_approx = dynamic_cast<SlaterApprox_error&>(*ncf_approx.get());
 		double a=slater_approx.get_a();
 		Tensor<double> b=copy(slater_approx.get_b());
+		//double c=slater_approx.get_c();
 
 
 		// number of parameter listed minus the fixed Slater length parameter a
