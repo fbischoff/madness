@@ -202,7 +202,7 @@ namespace madness{
 
 		for(int i=0; i<20; i++){
 
-//			slater_approx.set_b(b);
+			slater_approx.set_b(b);
 			const real_function_3d R_square_approx=ncf_approx->square();
 
 			save(R_square_approx,"R_square_approx");
