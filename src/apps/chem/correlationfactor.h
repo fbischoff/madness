@@ -2288,7 +2288,7 @@ private:
     	/// the length scale parameter
     	double a_;
     	Tensor<double> b;
-    	double c = 0.8;
+    	double c = 0.2;
     	//double c = 0.3;
     	//double c = 0.45;
     	//double d = -0.05;

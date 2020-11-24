@@ -265,6 +265,8 @@ tensorT Nemo::compute_fock_matrix(const vecfuncT& nemo, const tensorT& occ) cons
 	return fock;
 }
 
+double cpu0 = cpu_time();
+
 /// solve the HF equations
 double Nemo::solve(const SCFProtocol& proto) {
 
@@ -290,6 +292,7 @@ double Nemo::solve(const SCFProtocol& proto) {
 
 
 	// iterate the residual equations
+
 	for (int iter = 0; iter < calc->param.maxiter(); ++iter) {
 
 	    if (localized) nemo=localize(nemo,proto.dconv,iter==0);
@@ -448,9 +451,11 @@ double Nemo::solve(const SCFProtocol& proto) {
 		if (world.rank()==0) print("\nIterations failed\n");
 		energy = 0.0;
 	}
-
+	double cpu1 = cpu_time();
+	print("time for calc with NCF_a ", cpu1-cpu0);
 	return energy;
 }
+
 
 /// given nemos, compute the HF energy
 double Nemo::compute_energy(const vecfuncT& psi, const vecfuncT& Jpsi,
@@ -578,6 +583,8 @@ std::vector<double> Nemo::compute_energy_regularized(const vecfuncT& nemo, const
     return std::vector<double>{energy,ke+pe,J,exc,-K,pcm_energy,nucrep};
 }
 
+
+
 /// compute the reconstructed orbitals, and all potentials applied on nemo
 
 /// to use these potentials in the fock matrix computation they must
@@ -601,6 +608,8 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	const real_function_3d R_square_approx=ncf_approx->square();
 	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
 	real_function_3d densapprox=nemodensity*R_square_approx;
+
+
 
 /*
 // error measure 1 - one parameter
@@ -1183,7 +1192,6 @@ Tensor<double> Nemo::gradient(const Tensor<double>& x) {
     return grad;
 }
 
-
 /// compute the nuclear hessian
 Tensor<double> Nemo::hessian(const Tensor<double>& x) {
 
@@ -1256,6 +1264,7 @@ Tensor<double> Nemo::hessian(const Tensor<double>& x) {
             }
         }
     }
+
 //    if (hessdebug) {
         print("\n raw electronic Hessian (a.u.)\n");
         print(hessian);
@@ -1335,7 +1344,6 @@ Tensor<double> Nemo::hessian(const Tensor<double>& x) {
         printf("done with computing the hessian matrix at time %8.1fs \n",wall_time());
         printf("final energy %16.8f", calc->current_energy);
     }
-
     return hessian;
 
 }
