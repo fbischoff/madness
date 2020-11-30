@@ -2260,7 +2260,7 @@ private:
 
     		if (world.rank()==0) {
     			print("\nconstructed approximate nuclear correlation factor of the form");
-    			print("S_A = (erf(r/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ A (erfc(r/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
+    			print("S_A = (erf(rZ/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ A (erfc(rZ/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
     			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
     			print("    a = ",a_);
     			print ("   c = ",c);
@@ -2329,14 +2329,14 @@ private:
 
     	/// the nuclear correlation factor
     	double S(const double& r, const double& Z) const {
-    		return (erf(r/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ b[0]*(erfc(r/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
+    		return (erf((r*Z)/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ b[0]*(erfc((r*Z)/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
     	}
 
     	/// the nuclear correlation factor
     	double dSdb(const double& r, const double& Z, const int iparam1) const {
 
     		if(iparam1==0){
-    			return  (1+exp(-4*r*r))*erfc(r/c);
+    			return  (1+exp(-4*r*r))*erfc((r*Z)/c);
     					/*-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*sqrtpi)
     					-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*sqrtpi);*/
     		}
