@@ -83,6 +83,9 @@ namespace madness{
         else if (corrfac == "slaterapprox_error") {
 			return ncf_ptr(new SlaterApprox_error(world, molecule, a, bb));
         }
+        else if (corrfac == "slaterapprox_error_const") {
+       			return ncf_ptr(new SlaterApprox_error_const(world, molecule, a));
+               }
         else if (corrfac == "poly4erfc") {
             return ncf_ptr(new poly4erfc(world, molecule, a));
 		} else if (corrfac == "polynomial4") {
@@ -161,6 +164,7 @@ namespace madness{
 
 		const real_function_3d nemodensity_square = nemodensity*nemodensity;
 		const real_function_3d R_square=ncf->square();
+
 /*
 
 		//coulomb term
