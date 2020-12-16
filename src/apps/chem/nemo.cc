@@ -265,11 +265,11 @@ tensorT Nemo::compute_fock_matrix(const vecfuncT& nemo, const tensorT& occ) cons
 	return fock;
 }
 
-double cpu0 = cpu_time();
 
 /// solve the HF equations
 double Nemo::solve(const SCFProtocol& proto) {
 
+	double cpu0 = cpu_time();
 	// guess has already been performed in value()
 	vecfuncT& nemo = calc->amo;
 	long nmo = nemo.size();
