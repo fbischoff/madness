@@ -2260,10 +2260,11 @@ private:
 
     		if (world.rank()==0) {
     			print("\nconstructed approximate nuclear correlation factor of the form");
-    			print("S_A = (erf(rZ/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ A (erfc(rZ/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
+    			print("S_A = 0.5 ((1+ erf(rZ/c)) * (1+1/(a_-1)*exp(-a_*Z*(r-d))))+ A 0.5 (erfc(rZ/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*(r-d)*(r-d))))");
     			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
     			print("    a = ",a_);
     			print ("   c = ",c);
+    			print("    d = ", d);
     			print("    A = ", b[0]);
     			//print("    b = ", b[1]);
     			print("which is of SlaterApprox type\n");
@@ -2289,10 +2290,10 @@ private:
     	double a_;
     	Tensor<double> b;
     	double c = 0.2;
+    	double d = 0.17;
+
     	//double A = 0.916;
     	//double c = 0.3;
-    	//double c = 0.45;
-    	//double d = -0.05;
     	//double g = 4.00;
 
     	///sqrt of pi
@@ -2330,14 +2331,14 @@ private:
 
     	/// the nuclear correlation factor
     	double S(const double& r, const double& Z) const {
-    		return (erf((r*Z)/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ b[0]*(erfc((r*Z)/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
+    		return (0.5*(1 + erf(((r-d)*Z)/(c)))*(1 + 1/(a_ - 1)*exp(-a_*Z*r))) + b[0]*(0.5*erfc(((r - d)*Z)/(c))*(1 + 1/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
     	}
 
     	/// the nuclear correlation factor
     	double dSdb(const double& r, const double& Z, const int iparam1) const {
 
     		if(iparam1==0){
-    			return  (1+exp(-4*r*r))*erfc((r*Z)/c);
+    			return  0.5*(1+exp(-4*r*r))*erfc(((r-d)*Z)/c);
     					/*-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*sqrtpi)
     					-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*sqrtpi);*/
     		}
@@ -2416,10 +2417,12 @@ private:
 
        		if (world.rank()==0) {
        			print("\nconstructed approximate nuclear correlation factor of the form");
-       			print("S_A = (erf(rZ/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ A (erfc(rZ/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
+       			print("(0.5*(1 + Erf[((r - 0.17)*Z)/(c)])*(1 + 1/(a - 1)*Exp[-a*Z*r])) +  A*(0.5*Erfc[((r - 0.17)*Z)/(c)]*(1 + 1/(a - 1)*Exp[-a*a*Z*Z*r*r]))");
+       			//print("S_A = (erf((r-d)Z/c) * (1+1/(a_-1)*exp(-a_*Z*(r-d))))+ A (erfc((r-d)Z/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*(r-d)*(r-d))))");
        			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
        			print("    a = ",a_);
        			print ("   c = ",c);
+       			//print("    d = ", d);
        			print("    A = ", A);
        			//print("    b = ", b[1]);
        			print("which is of SlaterApprox type\n");
@@ -2446,6 +2449,7 @@ private:
        	//Tensor<double> b;
        	double c = 0.2;
        	double A = 0.916;
+       //double d = 0.03517;
        	//double c = 0.3;
        	//double c = 0.45;
        	//double d = -0.05;
@@ -2486,7 +2490,8 @@ private:
 
        	/// the nuclear correlation factor
        	double S(const double& r, const double& Z) const {
-       		return (erf((r*Z)/c) * (1+1/(a_-1)*exp(-a_*Z*r)))+ A *(erfc((r*Z)/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)));
+       		return (0.5*(1 + erf(((r-0.17)*Z)/(c)))*(1 + 1/(a_ - 1)*exp(-a_*Z*r))) +
+       			 A*(0.5*erfc(((r - 0.17)*Z)/(c))*(1 + 1/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
        	}
 
        	/// the nuclear correlation factor
