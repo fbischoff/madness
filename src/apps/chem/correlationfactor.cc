@@ -73,21 +73,24 @@ namespace madness{
 			return ncf_ptr(new GaussSlater(world, molecule));
 		} else if (corrfac == "linearslater") {
 			return ncf_ptr(new LinearSlater(world, molecule, a));
-        } else if ((corrfac == "gradientalgaussslater") or (corrfac == "ggs")) {
-            return ncf_ptr(new GradientalGaussSlater(world, molecule,a));
-        } else if (corrfac == "slater") {
+		} else if ((corrfac == "gradientalgaussslater") or (corrfac == "ggs")) {
+			return ncf_ptr(new GradientalGaussSlater(world, molecule,a));
+		} else if (corrfac == "slater") {
 			return ncf_ptr(new Slater(world, molecule, a));
-        } else if (corrfac == "slaterapprox") {
+		} else if (corrfac == "slaterapprox") {
 			return ncf_ptr(new SlaterApprox(world, molecule, a, bb));
-        }
-        else if (corrfac == "slaterapprox_error") {
+		}
+		else if (corrfac == "slaterapprox_error") {
 			return ncf_ptr(new SlaterApprox_error(world, molecule, a, bb));
-        }
-        else if (corrfac == "slaterapprox_error_const") {
-       			return ncf_ptr(new SlaterApprox_error_const(world, molecule, a));
-               }
-        else if (corrfac == "poly4erfc") {
-            return ncf_ptr(new poly4erfc(world, molecule, a));
+		}
+		else if (corrfac == "slaterapprox_g") {
+			return ncf_ptr(new SlaterApprox_G(world, molecule, a));
+		}
+		else if (corrfac == "slaterapprox_s") {
+			return ncf_ptr(new SlaterApprox_S(world, molecule, a));
+		}
+		else if (corrfac == "poly4erfc") {
+			return ncf_ptr(new poly4erfc(world, molecule, a));
 		} else if (corrfac == "polynomial4") {
 			return ncf_ptr(new Polynomial<4>(world, molecule, a ));
 		} else if (corrfac == "polynomial5") {
@@ -117,6 +120,8 @@ namespace madness{
 			return ncf_ptr();
 		}
 	}
+
+
 
 //	std::shared_ptr<NuclearCorrelationFactor>
 //	create_nuclear_correlation_factor(World& world,

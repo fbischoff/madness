@@ -303,12 +303,12 @@ double Nemo::solve(const SCFProtocol& proto) {
 	    vecfuncT R2nemo=mul(world,R_square,nemo);
 	    truncate(world,R2nemo);
 
-	    if (ncf_approx!=NULL) {
+	   /* if (ncf_approx!=NULL) {
 	    	const real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
 	    	const double nelectron=double(molecule().total_nuclear_charge())-param.charge();
 	    	ncf_approx=optimize_approximate_ncf(world,ncf_approx,ncf,poisson,nemodensity,nemo,nelectron,param.econv());
 		}
-
+*/
 
 		// compute potentials the Fock matrix: J - K + Vnuc
 		compute_nemo_potentials(nemo, psi, Jnemo, Knemo, pcmnemo, Unemo);
@@ -605,9 +605,11 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	truncate(world, psi);
 	END_TIMER(world, "reconstruct psi");
 
-	const real_function_3d R_square_approx=ncf_approx->square();
+
+	const real_function_3d R_square_approx1=ncf_approx1->square();
+	const real_function_3d R_square_approx2=ncf_approx2->square();
 	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-	real_function_3d densapprox=nemodensity*R_square_approx;
+	real_function_3d densapprox=nemodensity*R_square_approx1+nemodensity*R_square_approx2;
 
 
 
@@ -861,7 +863,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 //        Exchange<double,3> K=Exchange<double,3>(world,this,ispin).same(false).small_memory(false);
         Exchange<double,3> K(world);
 //        K.set_parameter(bra,ket,occ);
-        K.set_parameters(ncf_approx->square()*calc->amo, calc->amo, calc->aocc);
+        K.set_parameters(ncf_approx1->square()*calc->amo+ ncf_approx2->square()*calc->amo, calc->amo, calc->aocc);
         Knemo=K(nemo);
         scale(world,Knemo,calc->xc.hf_exchange_coefficient());
         truncate(world, Knemo);

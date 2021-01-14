@@ -89,7 +89,7 @@ namespace madness {
 class NuclearCorrelationFactor {
 public:
 	enum corrfactype {None, GradientalGaussSlater, GaussSlater, LinearSlater,
-	    Polynomial, Slater, SlaterApprox, SlaterApprox_error, SlaterApprox_error_const, poly4erfc, Two};
+	    Polynomial, Slater, SlaterApprox, SlaterApprox_error, SlaterApprox_G, SlaterApprox_S, poly4erfc, Two};
 	typedef std::shared_ptr< FunctionFunctorInterface<double,3> > functorT;
 
 	/// ctor
@@ -2260,8 +2260,7 @@ private:
 
     		if (world.rank()==0) {
     			print("\nconstructed approximate nuclear correlation factor of the form");
-    			print("S_A = 0.5 ((1+ erf(rZ/c)) * (1+1/(a_-1)*exp(-a_*Z*(r-d))))+ A 0.5 (erfc(rZ/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*(r-d)*(r-d))))");
-    			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
+    			print("S_A = 0.5 (1+ erf((r-d)Z/c)) * (1+1/(a_-1)*exp(-a_*Z*r))+ A 0.5 (erfc((r-d)Z/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
     			print("    a = ",a_);
     			print ("   c = ",c);
     			print("    d = ", d);
@@ -2405,165 +2404,235 @@ private:
 
 };
 
-    /// A constant nuclear correlation factor class using error functions as local functions
-       class SlaterApprox_error_const : public NuclearCorrelationFactor {
-       public:
-       	/// ctor
+    /// A nuclear correlation factor class containing only the Gaussian and erfc part of the SlaterApprox_error NCF
+      class SlaterApprox_G : public NuclearCorrelationFactor {
+      public:
+      	/// ctor
 
-       	/// @param[in]	world	the world
-       	/// @param[in]	mol molecule with the sites of the nuclei
-       	SlaterApprox_error_const(World& world, const Molecule& mol, const double a)
-       : NuclearCorrelationFactor(world,mol), a_(a){
+      	/// @param[in]	world	the world
+      	/// @param[in]	mol molecule with the sites of the nuclei
+      	SlaterApprox_G(World& world, const Molecule& mol, const double a)
+      : NuclearCorrelationFactor(world,mol), a_(a){
 
-       		if (world.rank()==0) {
-       			print("\nconstructed approximate nuclear correlation factor of the form");
-       			print("(0.5*(1 + Erf[((r - 0.17)*Z)/(c)])*(1 + 1/(a - 1)*Exp[-a*Z*r])) +  A*(0.5*Erfc[((r - 0.17)*Z)/(c)]*(1 + 1/(a - 1)*Exp[-a*a*Z*Z*r*r]))");
-       			//print("S_A = (erf((r-d)Z/c) * (1+1/(a_-1)*exp(-a_*Z*(r-d))))+ A (erfc((r-d)Z/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*(r-d)*(r-d))))");
-       			//print("S_A = g*erfc(((r*a_*Z)+d)/c)*exp(-a_*Z*r*r*Z*a_)+g*erf(((r*a_*Z)+d)/c)*exp(-r*Z*a_)");
-       			print("    a = ",a_);
-       			print ("   c = ",c);
-       			//print("    d = ", d);
-       			print("    A = ", A);
-       			//print("    b = ", b[1]);
-       			print("which is of SlaterApprox type\n");
-       		}
-       		if (a==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
-       		//for (int i=0; i<b.size(); ++i) {
-       		//	if (b[i]==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
-       		//}
-       	}
+      		if (world.rank()==0) {
+      			print("\nconstructed approximate nuclear correlation factor of the form");
+      			print("SG_A =  0.5 (erfc((r-d)Z/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
+      			print("    a = ",a_);
+      			print ("   c = ",c);
+      			print("    d = ", d);
+      			print("which is of SlaterApprox type\n");
+      		}
+      		if (a==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+      	}
 
 
-       	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox_error_const;}
-       	double get_a() const {return a_;};
-       //Tensor<double> get_b() const {return b;};
-       	/*void set_b(const Tensor<double>& bb) {
-       			b=bb;
-       	}*/
-       	//double get_c() const {return c_;};
+      	corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox_G;}
+      	double get_a() const {return a_;};
 
-       private:
+      	//double get_c() const {return c_;};
 
-       	/// the length scale parameter
-       	double a_;
-       	//Tensor<double> b;
-       	double c = 0.2;
-       	double A = 0.916;
-       //double d = 0.03517;
-       	//double c = 0.3;
-       	//double c = 0.45;
-       	//double d = -0.05;
-       	//double g = 4.00;
+      private:
 
-       	///sqrt of pi
-       	const double sqrtpi=sqrt(constants::pi);
-
-       	/// first derivative of the correlation factor wrt (r-R_A)
-
-       	/// \f[
-       	///     Sr_div_S = \frac{1}{S(r)}\frac{\partial S(r)}{\partial r}
-       	/// \f]
-       	double Sr_div_S(const double& r, const double& Z) const {
-       		return 0.0;
-       	}
+      	/// the length scale parameter
+      	double a_;
+      	double c = 0.2;
+      	double d = 0.17;
 
 
-       	/// second derivative of the correlation factor wrt (r-R_A)
+      	///sqrt of pi
+      	const double sqrtpi=sqrt(constants::pi);
 
-       	/// \f[
-       	///     result = \frac{1}{S(r)}\frac{\partial^2 S(r)}{\partial r^2}
-       	/// \f]
-       	double Srr_div_S(const double& r, const double& Z) const {
-       		return 0.0;
-       	}
+      	/// first derivative of the correlation factor wrt (r-R_A)
 
-       	/// third derivative of the correlation factor wrt (r-R_A)
-
-       	/// \f[
-       	///    result = \frac{1}{S(r)}\frac{\partial^3 S(r)}{\partial r^3}
-       	/// \f]
-       	double Srrr_div_S(const double& r, const double& Z) const {
-       		MADNESS_EXCEPTION("SlaterApprox not complete",1);
-       		return 0.0;
-       	}
+      	/// \f[
+      	///     Sr_div_S = \frac{1}{S(r)}\frac{\partial S(r)}{\partial r}
+      	/// \f]
+      	double Sr_div_S(const double& r, const double& Z) const {
+      		return 0.0;
+      	}
 
 
-       	/// the nuclear correlation factor
-       	double S(const double& r, const double& Z) const {
-       		return (0.5*(1 + erf(((r-0.17)*Z)/(c)))*(1 + 1/(a_ - 1)*exp(-a_*Z*r))) +
-       			 A*(0.5*erfc(((r - 0.17)*Z)/(c))*(1 + 1/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
-       	}
+      	/// second derivative of the correlation factor wrt (r-R_A)
 
-       	/// the nuclear correlation factor
+      	/// \f[
+      	///     result = \frac{1}{S(r)}\frac{\partial^2 S(r)}{\partial r^2}
+      	/// \f]
+      	double Srr_div_S(const double& r, const double& Z) const {
+      		return 0.0;
+      	}
+
+      	/// third derivative of the correlation factor wrt (r-R_A)
+
+      	/// \f[
+      	///    result = \frac{1}{S(r)}\frac{\partial^3 S(r)}{\partial r^3}
+      	/// \f]
+      	double Srrr_div_S(const double& r, const double& Z) const {
+      		MADNESS_EXCEPTION("SlaterApprox not complete",1);
+      		return 0.0;
+      	}
+
+
+      	/// the nuclear correlation factor
+      	double S(const double& r, const double& Z) const {
+      		return (0.5*erfc(((r - d)*Z)/(c))*(1 + 1/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
+      	}
+
+      	/// the nuclear correlation factor
       	double dSdb(const double& r, const double& Z, const int iparam1) const {
 
-       		if(iparam1==0){
-       			return  (1+exp(-4*r*r))*erfc((r*Z)/c);
-       					/*-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*sqrtpi)
-       					-(2*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*sqrtpi);*/
-      		}
-       		/*else if(iparam1==1){
-       			return (1/4)*exp(-2*r)*erf(r/b[0]) + (1/4)*exp(-r*r)*erfc(r/b[0]);
-       		}*/
-       	}
+      		return 0.0;
+      	}
 
-       	double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
+      	double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
+      			return 0.0;
+      	}
 
 
-       			return 0.0;
-       					/*(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
-       					-(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r)/(b[0]*b[0]*b[0]*sqrtpi)
-   						-(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-2*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi)
-       					+(4*exp(-(r*r)/(b[0]*b[0]))*(1+exp(-4*r*r))*r*r*r)/(b[0]*b[0]*b[0]*b[0]*b[0]*sqrtpi);*/
+      /// radial part first derivative of the nuclear correlation factor
+      coord_3d Sp(const coord_3d& vr1A, const double& Z) const {
+  		MADNESS_EXCEPTION("SlaterApprox not complete",1);
+  		return coord_3d(0.0);
+      }
 
-       		/*else if ((iparam1 == 0) && (iparam2 == 1)) {
-
-       			return -(exp(-(2*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi) -(exp(-(r*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi);
-       		}
-       		else if ((iparam1 == 1) && (iparam2 == 0)) {
-
-       			return -(exp(-(2*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi) -(exp(-(r*r)-((r*r)/(b[0]*b[0])))*r)/(2*b[0]*b[0]*sqrtpi);
-       		}
-       		else if ((iparam1 == 1) && (iparam2 == 1)) {
-       		  return 0;
-       		}*/
-       		/*else {
-       			MADNESS_EXCEPTION("faulty iparam in correlationfactor::d2Sdbdc ",1);
-       			return 0;
-       		}*/
-       	}
+      /// second derivative of the nuclear correlation factor
+      double Spp_div_S(const double& r, const double& Z) const {
+  		return 0.0;
+      }
 
 
-       /// radial part first derivative of the nuclear correlation factor
-       coord_3d Sp(const coord_3d& vr1A, const double& Z) const {
-   		MADNESS_EXCEPTION("SlaterApprox not complete",1);
-   		return coord_3d(0.0);
-       }
+      /// derivative of the U2 potential wrt X (scalar part)
 
-       /// second derivative of the nuclear correlation factor
-       double Spp_div_S(const double& r, const double& Z) const {
-   		return 0.0;
-       }
+      /// with
+      /// \f[
+      ///   \rho = \left| \vec r- \vec R_A \right|
+      /// \f]
+      /// returns the term in the parenthesis without the the derivative of rho
+      /// \f[
+      /// \frac{\partial U_2}{\partial X_A} = \frac{\partial \rho}{\partial X}
+      ///           \left(-\frac{1}{2}\frac{S''' S - S'' S'}{S^2} + \frac{1}{\rho^2}\frac{S'}{S}
+      ///           - \frac{1}{\rho} \frac{S''S - S'^2}{S^2} + \frac{Z_A}{\rho^2}\right)
+      /// \f]
+      double U2X_spherical(const double& r, const double& Z, const double& rcut) const {
+  		MADNESS_EXCEPTION("SlaterApprox not complete",1);
+  		return 0.0;
+      }
+
+  };
+
+      /// A nuclear correlation factor class containing only the Slater and erf part of the SlaterApprox_error NCF
+      class SlaterApprox_S : public NuclearCorrelationFactor {
+      public:
+    	  /// ctor
+
+    	  /// @param[in]	world	the world
+    	  /// @param[in]	mol molecule with the sites of the nuclei
+    	  SlaterApprox_S(World& world, const Molecule& mol, const double a)
+      : NuclearCorrelationFactor(world,mol), a_(a) {
+
+    		  if (world.rank()==0) {
+    			  print("\nconstructed approximate nuclear correlation factor of the form");
+    			  print("SG_A =  0.5 (1+ erf((r-d)Z/c)) * (1+1/(a_-1)*exp(-a_*Z*r))");
+    			  print("    a = ",a_);
+    			  print ("   c = ",c);
+    			  print("    d = ", d);
+    			  print("which is of SlaterApprox type\n");
+    		  }
+    		  if (a==0.0) MADNESS_EXCEPTION("faulty parameters in SlaterApprox",1);
+    	  }
 
 
-       /// derivative of the U2 potential wrt X (scalar part)
+    	  corrfactype type() const {return NuclearCorrelationFactor::SlaterApprox_S;}
+    	  double get_a() const {return a_;};
 
-       /// with
-       /// \f[
-       ///   \rho = \left| \vec r- \vec R_A \right|
-       /// \f]
-       /// returns the term in the parenthesis without the the derivative of rho
-       /// \f[
-       /// \frac{\partial U_2}{\partial X_A} = \frac{\partial \rho}{\partial X}
-       ///           \left(-\frac{1}{2}\frac{S''' S - S'' S'}{S^2} + \frac{1}{\rho^2}\frac{S'}{S}
-       ///           - \frac{1}{\rho} \frac{S''S - S'^2}{S^2} + \frac{Z_A}{\rho^2}\right)
-       /// \f]
-       double U2X_spherical(const double& r, const double& Z, const double& rcut) const {
-   		MADNESS_EXCEPTION("SlaterApprox not complete",1);
-   		return 0.0;
-       }
+    	  //double get_c() const {return c_;};
 
-   };
+      private:
+
+    	  /// the length scale parameter
+    	  double a_;
+    	  double c = 0.2;
+    	  double d = 0.17;
+
+
+    	  ///sqrt of pi
+    	  const double sqrtpi=sqrt(constants::pi);
+
+    	  /// first derivative of the correlation factor wrt (r-R_A)
+
+    	  /// \f[
+    	  ///     Sr_div_S = \frac{1}{S(r)}\frac{\partial S(r)}{\partial r}
+    	  /// \f]
+    	  double Sr_div_S(const double& r, const double& Z) const {
+    		  return 0.0;
+    	  }
+
+
+    	  /// second derivative of the correlation factor wrt (r-R_A)
+
+    	  /// \f[
+    	  ///     result = \frac{1}{S(r)}\frac{\partial^2 S(r)}{\partial r^2}
+    	  /// \f]
+    	  double Srr_div_S(const double& r, const double& Z) const {
+    		  return 0.0;
+    	  }
+
+    	  /// third derivative of the correlation factor wrt (r-R_A)
+
+    	  /// \f[
+    	  ///    result = \frac{1}{S(r)}\frac{\partial^3 S(r)}{\partial r^3}
+    	  /// \f]
+    	  double Srrr_div_S(const double& r, const double& Z) const {
+    		  MADNESS_EXCEPTION("SlaterApprox not complete",1);
+    		  return 0.0;
+    	  }
+
+
+    	  /// the nuclear correlation factor
+    	  double S(const double& r, const double& Z) const {
+    	     return 0.5*(1+erf(((r - d)*Z)/c)*(1 + 1/(a_ - 1)* exp(-a_*Z*r)));
+    	  }
+
+    	  /// the nuclear correlation factor
+    	  double dSdb(const double& r, const double& Z, const int iparam1) const {
+
+    		  return 0.0;
+    	  }
+
+    	  double d2Sdbdc(const double& r, const double& Z, const int iparam1, const int iparam2) const {
+    		  return 0.0;
+    	  }
+
+
+    	  /// radial part first derivative of the nuclear correlation factor
+    	  coord_3d Sp(const coord_3d& vr1A, const double& Z) const {
+    		  MADNESS_EXCEPTION("SlaterApprox not complete",1);
+    		  return coord_3d(0.0);
+    	  }
+
+    	  /// second derivative of the nuclear correlation factor
+    	  double Spp_div_S(const double& r, const double& Z) const {
+    		  return 0.0;
+    	  }
+
+
+    	  /// derivative of the U2 potential wrt X (scalar part)
+
+    	  /// with
+    	  /// \f[
+    	  ///   \rho = \left| \vec r- \vec R_A \right|
+    	  /// \f]
+    	  /// returns the term in the parenthesis without the the derivative of rho
+    	  /// \f[
+    	  /// \frac{\partial U_2}{\partial X_A} = \frac{\partial \rho}{\partial X}
+    	  ///           \left(-\frac{1}{2}\frac{S''' S - S'' S'}{S^2} + \frac{1}{\rho^2}\frac{S'}{S}
+    	  ///           - \frac{1}{\rho} \frac{S''S - S'^2}{S^2} + \frac{Z_A}{\rho^2}\right)
+    	  /// \f]
+    	  double U2X_spherical(const double& r, const double& Z, const double& rcut) const {
+    		  MADNESS_EXCEPTION("SlaterApprox not complete",1);
+    		  return 0.0;
+    	  }
+
+      };
 
 std::shared_ptr<NuclearCorrelationFactor>
 create_nuclear_correlation_factor(World& world,

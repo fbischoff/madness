@@ -152,12 +152,14 @@ public:
 	void construct_nuclear_correlation_factor(const Molecule& molecule,
 			const std::shared_ptr<PotentialManager> pm,
 			const std::pair<std::string,std::list<double> > ncf_parameter,
-			const std::pair<std::string,std::list<double> > approximate_ncf_parameter=std::pair<std::string,std::list<double> >()) {
+			const std::pair<std::string,std::list<double> > approximate_ncf_parameter1=std::pair<std::string,std::list<double> >(),
+			const std::pair<std::string,std::list<double> > approximate_ncf_parameter2=std::pair<std::string,std::list<double> >()){
 
 	    // construct the nuclear correlation factor:
 	    if (not ncf) {
 	    	ncf=create_nuclear_correlation_factor(world, molecule, pm, ncf_parameter);
-	    	ncf_approx=create_nuclear_correlation_factor(world,molecule, pm,approximate_ncf_parameter);
+	    	ncf_approx1=create_nuclear_correlation_factor(world,molecule, pm,approximate_ncf_parameter1);
+	    	ncf_approx2=create_nuclear_correlation_factor(world,molecule, pm,approximate_ncf_parameter2);
 	    }
 
 	    // re-project the ncf
@@ -177,8 +179,9 @@ public:
 
 	/// the nuclear correlation factor
 	std::shared_ptr<NuclearCorrelationFactor> ncf;
-	std::shared_ptr<NuclearCorrelationFactor> ncf_approx;
-
+	//std::shared_ptr<NuclearCorrelationFactor> ncf_approx;
+	std::shared_ptr<NuclearCorrelationFactor> ncf_approx1;
+	std::shared_ptr<NuclearCorrelationFactor> ncf_approx2;
 	/// the nuclear correlation factor
 	real_function_3d R;
 
@@ -209,7 +212,8 @@ public:
 
 		void initialize_nemo_parameters() {
 			initialize<std::pair<std::string,std::list<double> > > ("ncf",{"slater",{2.0}},"nuclear correlation factor");
-			initialize<std::pair<std::string,std::list<double> > > ("ncf_approx",{"",{}},"nuclear correlation factor");
+			initialize<std::pair<std::string,std::list<double> > > ("ncf_approx1",{"",{}},"nuclear correlation factor");
+			initialize<std::pair<std::string,std::list<double> > > ("ncf_approx2",{"",{}},"nuclear correlation factor");
 			initialize<int> ("error_measure",1,"error measure for the approximate NCF");
 			initialize<bool> ("hessian",false,"compute the hessian matrix");
 			initialize<bool> ("read_cphf",false,"read the converged orbital response for nuclear displacements from file");
@@ -218,6 +222,8 @@ public:
 		}
 
 		std::pair<std::string,std::list<double> > ncf() const {return get<std::pair<std::string,std::list<double> > >("ncf");}
+		std::pair<std::string,std::list<double> > ncf_approx1() const {return get<std::pair<std::string,std::list<double> > >("ncf_approx1");}
+		std::pair<std::string,std::list<double> > ncf_approx2() const {return get<std::pair<std::string,std::list<double> > >("ncf_approx2");}
 		bool hessian() const {return get<bool>("hessian");}
 		int error_measure() const {return get<int>("error_measure");}
 
@@ -500,7 +506,8 @@ private:
         if ((not R.is_initialized()) or (R.thresh()>thresh)) {
             timer timer1(world);
             construct_nuclear_correlation_factor(calc->molecule, calc->potentialmanager, param.ncf(),
-            		param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
+            		param.get<std::pair<std::string,std::list<double> > >("ncf_approx1"),
+					param.get<std::pair<std::string,std::list<double> > >("ncf_approx2"));
             timer1.end("reproject ncf");
         }
 
