@@ -60,6 +60,7 @@ template<size_t NDIM>
 void load_function(World& world, Function<double,NDIM>& pair, const std::string name) {
     if (world.rank()==0)  print("loading function ", name);
 
+
     archive::ParallelInputArchive ar(world, name.c_str());
     ar & pair;
 

@@ -2416,8 +2416,9 @@ private:
 
       		if (world.rank()==0) {
       			print("\nconstructed approximate nuclear correlation factor of the form");
-      			print("SG_A =  0.5 (erfc((r-d)Z/c)* (1+1/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
+      			print("SG_A =  0.5*(erfc((r+d)Z/c)* (1+b/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
       			print("    a = ",a_);
+      		    print("    b = ", b);
       			print ("   c = ",c);
       			print("    d = ", d);
       			print("which is of SlaterApprox type\n");
@@ -2435,8 +2436,9 @@ private:
 
       	/// the length scale parameter
       	double a_;
+      	double b = 2.0;
       	double c = 0.2;
-      	double d = 0.17;
+      	double d = 0;
 
 
       	///sqrt of pi
@@ -2474,7 +2476,7 @@ private:
 
       	/// the nuclear correlation factor
       	double S(const double& r, const double& Z) const {
-      		return (0.5*erfc(((r - d)*Z)/(c))*(1 + 1/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
+      		return 0.5*(erfc(((r + d)*Z)/(c))*(1 + b/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
       	}
 
       	/// the nuclear correlation factor
@@ -2531,8 +2533,9 @@ private:
 
     		  if (world.rank()==0) {
     			  print("\nconstructed approximate nuclear correlation factor of the form");
-    			  print("SG_A =  0.5 (1+ erf((r-d)Z/c)) * (1+1/(a_-1)*exp(-a_*Z*r))");
+    			  print("SS_A = 0.5* ( 1+ erf((r+d)Z/c)) * (1+b/(a_-1)*exp(-a_*Z*r))");
     			  print("    a = ",a_);
+    			  print("    b = ", b);
     			  print ("   c = ",c);
     			  print("    d = ", d);
     			  print("which is of SlaterApprox type\n");
@@ -2551,7 +2554,8 @@ private:
     	  /// the length scale parameter
     	  double a_;
     	  double c = 0.2;
-    	  double d = 0.17;
+    	  double d = 0;
+    	  double b = 2.0;
 
 
     	  ///sqrt of pi
@@ -2589,7 +2593,7 @@ private:
 
     	  /// the nuclear correlation factor
     	  double S(const double& r, const double& Z) const {
-    	     return 0.5*(1+erf(((r - d)*Z)/c)*(1 + 1/(a_ - 1)* exp(-a_*Z*r)));
+    	     return 0.5*(1+erf(((r + d)*Z)/c)*(1 + b/(a_ - 1)* exp(-a_*Z*r)));
     	  }
 
     	  /// the nuclear correlation factor

@@ -605,50 +605,65 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	truncate(world, psi);
 	END_TIMER(world, "reconstruct psi");
 
-
-	const real_function_3d R_square_approx1=ncf_approx1->square();
-	const real_function_3d R_square_approx2=ncf_approx2->square();
+/*	const real_function_3d R_square_approx=ncf_approx->square();
 	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-	real_function_3d densapprox=nemodensity*R_square_approx1+nemodensity*R_square_approx2;
+	real_function_3d densapprox=nemodensity*R_square_approx;
+	save(R_square_approx, "NCF_slater");
+*/
 
+	double A = 1.0;
+		const real_function_3d R_approx1=ncf_approx1->function();
+		const real_function_3d R_approx2=ncf_approx2->function();
 
-
-/*
-// error measure 1 - one parameter
-	//parameter a and b
-	double a=*(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin());
-	double b=*(++(param.get<std::pair<std::string,std::list<double> > >("ncf_approx").second.begin()));
-	print("a,b",a,b);
-
-	for(int i=0; i<50; i++){
-		std::pair<std::string,std::list<double> > ncf_input ("slaterapprox", {a,b} );
-
-		//std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-		//		molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx"));
-
-		std::shared_ptr<NuclearCorrelationFactor> ncf_approx=create_nuclear_correlation_factor(world,
-				molecule(), calc->potentialmanager, ncf_input);
-
-		const real_function_3d R_square_approx=ncf_approx->square();
-		save(R_square_approx,"R_square_approx");
-
-		const real_function_3d dRdb_div_R_approx=ncf_approx->dRdb_div_R2(0);
-		save(dRdb_div_R_approx,"dRdb_div_R_approx");
-
-		const real_function_3d d2Rdbdc_div_R_approx=ncf_approx->d2Rdbdc_div_R2(0,0);
 
 		real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+		real_function_3d densapprox= square(R_approx1+A*R_approx2)*nemodensity;
+
+	    save(square(R_approx1+A*R_approx2), "NCF_A1");
+
+	/*
+	double A = 1.0;
+	const real_function_3d R_square_approx1=ncf_approx1->square();
+	const real_function_3d R_square_approx2=ncf_approx2->square();
+
+
+	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+	real_function_3d densapprox=nemodensity*R_square_approx1+ A*nemodensity*R_square_approx2;
+
+    save(R_square_approx1+A*R_square_approx2, "NCF_A1");
+*/
+// error measure 1 - one parameter
+
+
+	for(int i=0; i<50; i++){
+
+	/*	std::shared_ptr<NuclearCorrelationFactor> ncf_approx1=create_nuclear_correlation_factor(world,
+			molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx1"));
+		std::shared_ptr<NuclearCorrelationFactor> ncf_approx2=create_nuclear_correlation_factor(world,
+				molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx2"));
+
+
+		const real_function_3d R_square_approx1=ncf_approx1->square();
+		const real_function_3d R_square_approx2=ncf_approx2->square();
+		save(R_square_approx1,"R_square_approx1");
+		save(R_square_approx2,"R_square_approx2");
+*/
+
+		densapprox= square(R_approx1+A*R_approx2)*nemodensity;
+
+
 		double n=double(molecule().total_nuclear_charge())-param.charge();
-		double f=(nemodensity*R_square_approx).trace()-n;
-		double fprime=2.0*(nemodensity*R_square_approx*dRdb_div_R_approx).trace();
-		print("error measure 1", f, " b ", b );
-		b = b-f/fprime;
+		double f=(densapprox).trace()-n;
+		double dfdA = (2*R_approx1*R_approx2*nemodensity+2*A*R_approx2*R_approx2*nemodensity).trace();
+
+		print("error measure 1", f, " A = ", A );
+		A = A-f/dfdA;
 		double econv = calc -> param.econv();
 		if (fabs(f) < econv ){
 			break;
 		}
 	}
-  */
+
 /*
 //error measure 1
 	int error_measure=this->param.error_measure();
@@ -863,7 +878,9 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 //        Exchange<double,3> K=Exchange<double,3>(world,this,ispin).same(false).small_memory(false);
         Exchange<double,3> K(world);
 //        K.set_parameter(bra,ket,occ);
+        //K.set_parameters(ncf_approx->square()*calc->amo, calc->amo, calc->aocc);
         K.set_parameters(ncf_approx1->square()*calc->amo+ ncf_approx2->square()*calc->amo, calc->amo, calc->aocc);
+        MADNESS_ASSERT(0);
         Knemo=K(nemo);
         scale(world,Knemo,calc->xc.hf_exchange_coefficient());
         truncate(world, Knemo);
