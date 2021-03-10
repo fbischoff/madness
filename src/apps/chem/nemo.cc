@@ -617,9 +617,9 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 
 		real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-		real_function_3d densapprox= square(R_approx1+A*R_approx2)*nemodensity;
+		real_function_3d densapprox= square(A*R_approx1+R_approx2)*nemodensity;
 
-	    save(square(R_approx1+A*R_approx2), "NCF_A1");
+	    save(square(A*R_approx1+R_approx2), "NCF_A1");
 
 	/*
 	double A = 1.0;
@@ -654,7 +654,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 		double n=double(molecule().total_nuclear_charge())-param.charge();
 		double f=(densapprox).trace()-n;
-		double dfdA = (2*R_approx1*R_approx2*nemodensity+2*A*R_approx2*R_approx2*nemodensity).trace();
+		double dfdA = (2*R_approx1*R_approx2*nemodensity+2*A*R_approx1*R_approx1*nemodensity).trace();
 
 		print("error measure 1", f, " A = ", A );
 		A = A-f/dfdA;
