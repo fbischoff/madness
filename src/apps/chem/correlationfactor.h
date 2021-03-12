@@ -157,7 +157,7 @@ public:
 	virtual real_function_3d function() const {
 		functorT Rf=functorT(new R_functor(this,1));
 		real_function_3d r=real_factory_3d(world).thresh(vtol)
-				.functor(Rf).truncate_on_project();
+				.functor(Rf).truncate_on_project().special_level(8);
 		return r;
 	}
 
@@ -471,7 +471,8 @@ public:
 		int exponent;
 	public:
 		R_functor(const NuclearCorrelationFactor* ncf, const int e=1)
-			: ncf(ncf), exponent(e) {}
+			: ncf(ncf), exponent(e) {
+}
 		double operator()(const coord_3d& xyz) const {
 			double result=1.0;
 			for (size_t i=0; i<ncf->molecule.natom(); ++i) {
@@ -2437,7 +2438,7 @@ private:
       	/// the length scale parameter
       	double a_;
       	double b = 2.0;
-      	double c = 0.2;
+      	double c = 0.5;
       	double d = 0;
 
 
@@ -2476,7 +2477,7 @@ private:
 
       	/// the nuclear correlation factor
       	double S(const double& r, const double& Z) const {
-      		return 0.5*(erfc(((r + d)*Z)/(c))*(1 + b/(a_ - 1)* exp(-a_*a_*Z*Z*r*r)));
+      		return 0.5*(erfc((r*Z)/c)*(1.0 + b/(a_ - 1.0)* exp(-a_*a_*Z*Z*r*r)));
       	}
 
       	/// the nuclear correlation factor
@@ -2553,7 +2554,7 @@ private:
 
     	  /// the length scale parameter
     	  double a_;
-    	  double c = 0.2;
+    	  double c = 0.5;
     	  double d = 0;
     	  double b = 2.0;
 

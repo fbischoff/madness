@@ -612,14 +612,17 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 */
 
 	double A = 1.0;
-		const real_function_3d R_approx1=ncf_approx1->function();
-		const real_function_3d R_approx2=ncf_approx2->function();
+	const real_function_3d R_approx1=ncf_approx1->function();
+	const real_function_3d R_approx2=ncf_approx2->function();
+	double ncf1=R_approx1.norm2();
+	double ncf2=R_approx2.norm2();
+	print("ncf1 trace",ncf1,ncf2);
 
 
-		real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
-		real_function_3d densapprox= square(A*R_approx1+R_approx2)*nemodensity;
+	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
+	real_function_3d densapprox= square(R_approx1+A*R_approx2)*nemodensity;
 
-	    save(square(A*R_approx1+R_approx2), "NCF_A1");
+	save(square(R_approx1+A*R_approx2), "NCF_A1");
 
 	/*
 	double A = 1.0;
@@ -635,7 +638,14 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 // error measure 1 - one parameter
 
 
-	for(int i=0; i<50; i++){
+	double dfdA_1 = (2*R_approx1*R_approx2*nemodensity).trace();
+	double dfdA_2 = (2*R_approx2*R_approx2*nemodensity).trace();
+	double densapprox_1= (square(R_approx1)*nemodensity).trace();
+	double densapprox_2= (2*R_approx1*R_approx2*nemodensity).trace();
+	double densapprox_3= (square(R_approx2)*nemodensity).trace();
+	print("densaprox 1,2,3 trace",densapprox_1,densapprox_2,densapprox_3);
+	
+	for(int i=0; i<1000; i++){
 
 	/*	std::shared_ptr<NuclearCorrelationFactor> ncf_approx1=create_nuclear_correlation_factor(world,
 			molecule(), calc->potentialmanager, param.get<std::pair<std::string,std::list<double> > >("ncf_approx1"));
@@ -649,12 +659,14 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 		save(R_square_approx2,"R_square_approx2");
 */
 
-		densapprox= square(R_approx1+A*R_approx2)*nemodensity;
+//		densapprox= square(R_approx1+A*R_approx2)*nemodensity;
+		double densapprox_trace= densapprox_1 + A*densapprox_2 + A*A*densapprox_3;
 
 
 		double n=double(molecule().total_nuclear_charge())-param.charge();
-		double f=(densapprox).trace()-n;
-		double dfdA = (2*R_approx1*R_approx2*nemodensity+2*A*R_approx1*R_approx1*nemodensity).trace();
+		double f=densapprox_trace-n;
+//		double dfdA = (2*R_approx1*R_approx2*nemodensity+2*A*R_approx1*R_approx1*nemodensity).trace();
+		double dfdA= dfdA_1 + A*dfdA_2;
 
 		print("error measure 1", f, " A = ", A );
 		A = A-f/dfdA;
