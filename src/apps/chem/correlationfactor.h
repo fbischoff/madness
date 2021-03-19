@@ -155,9 +155,14 @@ public:
 
 	/// return the nuclear correlation factor
 	virtual real_function_3d function() const {
-		functorT Rf=functorT(new R_functor(this,1));
-		real_function_3d r=real_factory_3d(world).thresh(vtol)
-				.functor(Rf).truncate_on_project().special_level(8);
+		functorT Rf = functorT(new R_functor(this, 1));
+		print("Rf.special_points", Rf->special_points());
+		real_function_3d r =
+				real_factory_3d(world).thresh(vtol).functor(Rf).special_level(
+						10).initial_level(5);
+		R_functor RR(this, 1);
+		plot_plane<3, R_functor>(world, RR, "Rf");
+		save(r, "r");
 		return r;
 	}
 
@@ -2417,7 +2422,7 @@ private:
 
       		if (world.rank()==0) {
       			print("\nconstructed approximate nuclear correlation factor of the form");
-      			print("SG_A =  0.5*(erfc((r+d)Z/c)* (1+b/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
+      			print("SG_A =  1.0 + 0.5*(erfc((r+d)Z/c)* (1+b/(a_-1)*exp(-a_*a_*Z*Z*r*r)))");
       			print("    a = ",a_);
       		    print("    b = ", b);
       			print ("   c = ",c);
@@ -2477,7 +2482,7 @@ private:
 
       	/// the nuclear correlation factor
       	double S(const double& r, const double& Z) const {
-      		return 0.5*(erfc((r*Z)/c)*(1.0 + b/(a_ - 1.0)* exp(-a_*a_*Z*Z*r*r)));
+      		return 1.0+ (0.5*(erfc((r*Z)/c)*(1.0 + b/(a_ - 1.0)* exp(-a_*a_*Z*Z*r*r))));
       	}
 
       	/// the nuclear correlation factor

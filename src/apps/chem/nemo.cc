@@ -613,7 +613,8 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 
 	double A = 1.0;
 	const real_function_3d R_approx1=ncf_approx1->function();
-	const real_function_3d R_approx2=ncf_approx2->function();
+	const real_function_3d R_approx2_0=ncf_approx2->function();
+	const real_function_3d R_approx2=R_approx2_0 - 1.0;
 	double ncf1=R_approx1.norm2();
 	double ncf2=R_approx2.norm2();
 	print("ncf1 trace",ncf1,ncf2);
