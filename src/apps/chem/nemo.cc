@@ -332,8 +332,8 @@ double Nemo::solve(const SCFProtocol& proto) {
 		std::vector<double> oldenergyvec=energyvec;
 		double oldenergy=0.0;
 		if (oldenergyvec.size()>0) oldenergy=oldenergyvec[0];
-//		energy = compute_energy(psi, mul(world, R, Jnemo),
-//				mul(world, R, Knemo));
+		//energy = compute_energy(psi, mul(world, R, Jnemo),
+		//		mul(world, R, Knemo));
         energyvec = compute_energy_regularized(nemo, Jnemo, Knemo, Unemo);
         energy=energyvec[0];
         double expval=fabs(energyvec.size()-oldenergyvec.size());	// >0 if oldenergyvec not initialized
@@ -514,6 +514,9 @@ std::vector<double> Nemo::compute_energy_regularized(const vecfuncT& nemo, const
     vecfuncT R2nemo=mul(world,R_square,nemo);
     truncate(world,R2nemo);
 
+    Coulomb  J_opp=Coulomb (world,this);
+    vecfuncT Jnemo1=J_opp(nemo);
+
     const tensorT U = inner(world, R2nemo, Unemo);
     const double pe = 2.0 * U.sum();  // closed shell
 
@@ -543,7 +546,7 @@ std::vector<double> Nemo::compute_energy_regularized(const vecfuncT& nemo, const
 //    ke1 *= 2.0; // closed shell
 
 
-    const double J = inner(world, R2nemo, Jnemo).sum();
+    const double J = inner(world, R2nemo, Jnemo1).sum();
     const double K = inner(world, R2nemo, Knemo).sum();
 
     int ispin=0;
@@ -623,6 +626,8 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	real_function_3d nemodensity=2.0*dot(world,nemo,nemo);
 	real_function_3d densapprox= square(R_approx1+A*R_approx2)*nemodensity;
 
+	save(densapprox, "densapprox");
+	save(nemodensity, "nemodensity");
 	save(square(R_approx1+A*R_approx2), "NCF_A1");
 
 	/*
@@ -644,7 +649,7 @@ void Nemo::compute_nemo_potentials(const vecfuncT& nemo, vecfuncT& psi,
 	double densapprox_1= (square(R_approx1)*nemodensity).trace();
 	double densapprox_2= (2*R_approx1*R_approx2*nemodensity).trace();
 	double densapprox_3= (square(R_approx2)*nemodensity).trace();
-	print("densaprox 1,2,3 trace",densapprox_1,densapprox_2,densapprox_3);
+	print("densapprox 1,2,3 trace",densapprox_1,densapprox_2,densapprox_3);
 	
 	for(int i=0; i<1000; i++){
 
